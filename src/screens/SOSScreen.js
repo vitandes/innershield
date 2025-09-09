@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
+import { useFocusEffect } from '@react-navigation/native';
 import { mindfulnessMessages } from '../data/mindfulnessMessages';
 
 const SOSScreen = ({ navigation }) => {
@@ -28,14 +29,61 @@ const SOSScreen = ({ navigation }) => {
   const [isPaused, setIsPaused] = useState(false);
   const [lastPlayedSound, setLastPlayedSound] = useState(null);
   const [preparationMessageCount, setPreparationMessageCount] = useState(0);
+  
+  // Referencias para intervalos y timers
+  const messageIntervalRef = useRef(null);
+  const mainIntervalRef = useRef(null);
+  const phaseTimeoutRef = useRef(null);
   const breathingAnim = new Animated.Value(1);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const welcomeAnim = useRef(new Animated.Value(0)).current;
   const floatAnim = useRef(new Animated.Value(0)).current;
   
-
+  // Cleanup de audio cuando el componente pierde el foco
+  useFocusEffect(
+    React.useCallback(() => {
+      return () => {
+        // Cleanup cuando el componente se desmonta o pierde el foco
+        if (sound) {
+          try {
+            sound.stopAsync();
+            sound.unloadAsync();
+          } catch (error) {
+            console.log('Error stopping sound on cleanup:', error);
+          }
+        }
+        
+        // Configurar audio para permitir reproducción
+        try {
+          Audio.setAudioModeAsync({
+            allowsRecordingIOS: false,
+            staysActiveInBackground: false,
+            playsInSilentModeIOS: true, // Permitir sonido en modo silencioso
+            shouldDuckAndroid: false,
+            playThroughEarpieceAndroid: false,
+          });
+          
+          // Asegurar que el audio esté habilitado
+          Audio.setIsEnabledAsync(true);
+        } catch (error) {
+          console.log('Error in audio setup:', error);
+        }
+      };
+    }, [sound])
+  );
 
   // Removed panic mode useEffect - now using direct mindfulness approach
+
+  // Cleanup adicional cuando el componente se desmonta
+  useEffect(() => {
+    return () => {
+      // Cleanup final cuando el componente se desmonta completamente
+      if (sound) {
+        sound.stopAsync().catch(() => {});
+        sound.unloadAsync().catch(() => {});
+      }
+    };
+  }, []);
 
   // Empathetic welcome animation
   useEffect(() => {
@@ -88,11 +136,9 @@ const SOSScreen = ({ navigation }) => {
 
   // Efecto separado para el intervalo de mensajes
   useEffect(() => {
-    let messageInterval;
-    
     if (breathingActive && !showWelcome && !isPaused) {
       // Cambio de mensaje aleatorio cada 15 segundos para todas las fases
-      messageInterval = setInterval(() => {
+      messageIntervalRef.current = setInterval(() => {
         setCurrentMessage(prev => {
           let messagesArray;
           switch (sessionPhase) {
@@ -138,20 +184,20 @@ const SOSScreen = ({ navigation }) => {
     }
     
     return () => {
-      if (messageInterval) clearInterval(messageInterval);
+      if (messageIntervalRef.current) {
+        clearInterval(messageIntervalRef.current);
+        messageIntervalRef.current = null;
+      }
     };
   }, [breathingActive, showWelcome, isPaused, sessionPhase]); // Added sessionPhase to dependencies
 
   useEffect(() => {
-    let interval;
-    let totalTimeInterval;
-    
     if (breathingActive && !showWelcome && !isPaused) {
       // Iniciar sonido ambiente
       loadAndPlaySound();
       
       // Contador total de tiempo de sesión
-      totalTimeInterval = setInterval(() => {
+      mainIntervalRef.current = setInterval(() => {
         setTotalSessionTime(prev => prev + 1);
       }, 1000);
       
@@ -162,7 +208,7 @@ const SOSScreen = ({ navigation }) => {
       
       // Guided breathing phase (2 minutes)
       else if (sessionPhase === 1) {
-        interval = setInterval(() => {
+        phaseTimeoutRef.current = setInterval(() => {
           setBreathingCount(prev => {
             const newCount = prev + 1;
             const cycle = newCount % 12; // 4 segundos inhalar, 4 mantener, 4 exhalar
@@ -211,8 +257,14 @@ const SOSScreen = ({ navigation }) => {
     }
     
     return () => {
-      if (interval) clearInterval(interval);
-      if (totalTimeInterval) clearInterval(totalTimeInterval);
+      if (phaseTimeoutRef.current) {
+        clearInterval(phaseTimeoutRef.current);
+        phaseTimeoutRef.current = null;
+      }
+      if (mainIntervalRef.current) {
+        clearInterval(mainIntervalRef.current);
+        mainIntervalRef.current = null;
+      }
     };
   }, [breathingActive, sessionPhase, isPaused]);
   
@@ -495,11 +547,57 @@ const SOSScreen = ({ navigation }) => {
 
   // Nueva función para finalizar la sesión y navegar al feedback
   const finishSession = async () => {
-    // Detener sonido
-    if (sound) {
-      await sound.stopAsync();
-      await sound.unloadAsync();
-      setSound(null);
+    try {
+      // First, stop all active states and intervals
+      setBreathingActive(false);
+      setIsPaused(true);
+      
+      // Clear all possible intervals and timers explicitly
+      if (messageIntervalRef.current) {
+        clearInterval(messageIntervalRef.current);
+        messageIntervalRef.current = null;
+      }
+      if (mainIntervalRef.current) {
+        clearInterval(mainIntervalRef.current);
+        mainIntervalRef.current = null;
+      }
+      if (phaseTimeoutRef.current) {
+        clearInterval(phaseTimeoutRef.current);
+        phaseTimeoutRef.current = null;
+      }
+      
+      // Detener y limpiar sonido de manera robusta
+      if (sound) {
+        try {
+          await sound.stopAsync();
+          await sound.unloadAsync();
+        } catch (error) {
+          console.log('Error stopping voice sound:', error);
+        }
+        setSound(null);
+      }
+      
+      // Configurar audio para limpieza rápida
+      try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          staysActiveInBackground: false,
+          playsInSilentModeIOS: false,
+          shouldDuckAndroid: false,
+          playThroughEarpieceAndroid: false,
+        });
+        
+        // Limpieza rápida del audio
+        await Audio.setIsEnabledAsync(false);
+        await new Promise(resolve => setTimeout(resolve, 50));
+        await Audio.setIsEnabledAsync(true);
+        
+      } catch (error) {
+        console.log('Error in audio cleanup during finish:', error);
+      }
+      
+    } catch (error) {
+      console.log('Error in finishSession:', error);
     }
     
     // Navegar a la pantalla de feedback con datos de la sesión
