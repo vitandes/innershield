@@ -17,13 +17,11 @@ const HomeScreen = ({ navigation }) => {
 
   const [dailyMessage] = useState('Every small step counts. Today is a new opportunity to take care of your wellbeing.');
   
-  // Daily missions state
+  // Daily missions state - Updated to reflect only available functionalities
   const [dailyMissions, setDailyMissions] = useState([
-    { id: 1, title: 'Emotional check-in', completed: true, icon: 'heart' },
-    { id: 2, title: 'Breathing exercise', completed: true, icon: 'leaf' },
-    { id: 3, title: 'Grounding technique', completed: false, icon: 'game-controller' },
-    { id: 4, title: 'Journal writing', completed: false, icon: 'book' },
-    { id: 5, title: 'Guided visualization', completed: false, icon: 'eye' }
+    { id: 1, title: 'Breathing exercise', completed: false, icon: 'leaf' },
+    { id: 2, title: 'Journal writing', completed: false, icon: 'book' },
+    { id: 3, title: 'Sleep melodies', completed: false, icon: 'moon' }
   ]);
   
   const completedMissions = dailyMissions.filter(mission => mission.completed).length;
@@ -41,7 +39,7 @@ const HomeScreen = ({ navigation }) => {
     return '#F44336'; // Rojo
   };
 
-  // Function to toggle mission status
+  // Function to toggle mission status and navigate to corresponding screen
   const toggleMission = (missionId) => {
     setDailyMissions(prevMissions => 
       prevMissions.map(mission => 
@@ -50,6 +48,24 @@ const HomeScreen = ({ navigation }) => {
           : mission
       )
     );
+    
+    // Navigate to corresponding screen when mission is activated
+    const mission = dailyMissions.find(m => m.id === missionId);
+    if (mission && !mission.completed) {
+      switch (missionId) {
+        case 1: // Breathing exercise
+          navigation.navigate('Breathing');
+          break;
+        case 2: // Journal writing
+          navigation.navigate('Journal');
+          break;
+        case 3: // Sleep melodies
+          navigation.navigate('SleepMelodies');
+          break;
+        default:
+          break;
+      }
+    }
   };
 
 
@@ -67,13 +83,11 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const handleMyRecord = () => {
-    Alert.alert(
-      'My Record',
-      'Personal wellness record:\n\n📊 Average emotional state: 6.8/10\n📅 Days recorded: 15\n🎯 Current streak: 5 days\n📈 Trend: Improving',
-      [{ text: 'View details' }]
-    );
+    navigation.navigate('Journal');
   };
 
+  // Funcionalidades comentadas para implementar después
+  /*
   const handleVisualization = () => {
     Alert.alert(
       'Visualization',
@@ -81,13 +95,10 @@ const HomeScreen = ({ navigation }) => {
       [{ text: 'Start' }]
     );
   };
+  */
 
   const handleSleepSounds = () => {
-    Alert.alert(
-      'Sleep Melodies',
-      'Relaxing sounds for better rest:\n\n🌧️ Gentle rain\n🌊 Ocean waves\n🎵 Instrumental music\n🦗 Nature sounds\n\nSelect your favorite.',
-      [{ text: 'Play' }]
-    );
+    navigation.navigate('SleepMelodies');
   };
 
 
@@ -178,22 +189,15 @@ const HomeScreen = ({ navigation }) => {
                </LinearGradient>
              </TouchableOpacity>
              
+             {/* Lessons - Comentado para implementar después */}
+             {/*
              <TouchableOpacity style={styles.toolCard} onPress={() => navigation.navigate('Shield')}>
                <LinearGradient colors={['#81C784', '#66BB6A']} style={styles.toolGradient}>
                  <Ionicons name="shield-checkmark" size={32} color="white" />
                  <Text style={styles.toolTitle}>Lessons</Text>
                </LinearGradient>
              </TouchableOpacity>
-           </View>
-          
-          {/* Second row */}
-           <View style={styles.toolsRow}>
-             <TouchableOpacity style={styles.toolCard} onPress={handleGroundingTechniques}>
-               <LinearGradient colors={['#FFB74D', '#FFA726']} style={styles.toolGradient}>
-                 <Ionicons name="game-controller" size={32} color="white" />
-                 <Text style={styles.toolTitle}>Play</Text>
-               </LinearGradient>
-             </TouchableOpacity>
+             */}
              
              <TouchableOpacity style={styles.toolCard} onPress={handleMyRecord}>
                <LinearGradient colors={['#BA68C8', '#AB47BC']} style={styles.toolGradient}>
@@ -203,14 +207,17 @@ const HomeScreen = ({ navigation }) => {
              </TouchableOpacity>
            </View>
           
-          {/* Third row */}
+          {/* Second row */}
            <View style={styles.toolsRow}>
-             <TouchableOpacity style={styles.toolCard} onPress={handleVisualization}>
-               <LinearGradient colors={['#FF8A65', '#FF7043']} style={styles.toolGradient}>
-                 <Ionicons name="eye" size={32} color="white" />
-                 <Text style={styles.toolTitle}>Visualize</Text>
+             {/* Play - Comentado para implementar después */}
+             {/*
+             <TouchableOpacity style={styles.toolCard} onPress={handleGroundingTechniques}>
+               <LinearGradient colors={['#FFB74D', '#FFA726']} style={styles.toolGradient}>
+                 <Ionicons name="game-controller" size={32} color="white" />
+                 <Text style={styles.toolTitle}>Play</Text>
                </LinearGradient>
              </TouchableOpacity>
+             */}
              
              <TouchableOpacity style={styles.toolCard} onPress={handleSleepSounds}>
                <LinearGradient colors={['#5C6BC0', '#3F51B5']} style={styles.toolGradient}>
@@ -219,6 +226,18 @@ const HomeScreen = ({ navigation }) => {
                </LinearGradient>
              </TouchableOpacity>
            </View>
+          
+          {/* Third row - Comentado para implementar después */}
+           {/*
+           <View style={styles.toolsRow}>
+             <TouchableOpacity style={styles.toolCard} onPress={handleVisualization}>
+               <LinearGradient colors={['#FF8A65', '#FF7043']} style={styles.toolGradient}>
+                 <Ionicons name="eye" size={32} color="white" />
+                 <Text style={styles.toolTitle}>Visualize</Text>
+               </LinearGradient>
+             </TouchableOpacity>
+           </View>
+           */}
         </View>
 
 

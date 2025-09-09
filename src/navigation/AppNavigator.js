@@ -9,9 +9,12 @@ import HomeScreen from '../screens/HomeScreen';
 import InsightsScreen from '../screens/InsightsScreen';
 import SOSScreen from '../screens/SOSScreen';
 import SOSFeedbackScreen from '../screens/SOSFeedbackScreen';
+import BreathingFeedbackScreen from '../screens/BreathingFeedbackScreen';
 import ShieldScreen from '../screens/ShieldScreen';
 import MoreScreen from '../screens/MoreScreen';
 import BreathingScreen from '../screens/BreathingScreen';
+import SleepMelodiesScreen from '../screens/SleepMelodiesScreen';
+import JournalScreen from '../screens/JournalScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -112,6 +115,21 @@ export default function AppNavigator() {
         <Stack.Screen 
           name="SOSFeedback" 
           component={SOSFeedbackScreen} 
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen 
+          name="BreathingFeedback" 
+          component={BreathingFeedbackScreen} 
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen 
+          name="SleepMelodies" 
+          component={SleepMelodiesScreen} 
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen 
+          name="Journal" 
+          component={JournalScreen} 
           options={{ headerShown: false }}
         />
       </Stack.Navigator>

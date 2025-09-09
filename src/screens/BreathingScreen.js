@@ -20,6 +20,7 @@ const BreathingScreen = ({ navigation }) => {
   const [currentMessage, setCurrentMessage] = useState(0);
   const [timer, setTimer] = useState(0);
   const [totalTime, setTotalTime] = useState(0);
+  const [maxSessionTime] = useState(120); // 2 minutos máximo
   
   const breathingAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -145,7 +146,19 @@ const BreathingScreen = ({ navigation }) => {
       
       // Total time counter
       totalInterval = setInterval(() => {
-        setTotalTime(prev => prev + 1);
+        setTotalTime(prev => {
+          const newTime = prev + 1;
+          // Verificar si se alcanzó el tiempo máximo
+          if (newTime >= maxSessionTime) {
+            setIsActive(false);
+            navigation.navigate('BreathingFeedback', {
+              sessionType: 'breathing',
+              duration: newTime,
+              technique: selectedTechnique
+            });
+          }
+          return newTime;
+        });
       }, 1000);
       
       // Message rotation (every 10 seconds)
@@ -155,6 +168,19 @@ const BreathingScreen = ({ navigation }) => {
       
       // Preparation phase (10 seconds)
       if (currentPhase === 'prepare') {
+        setTimer(10); // Start with 10 seconds
+        interval = setInterval(() => {
+          setTimer(prev => {
+            const newTimer = prev - 1;
+            if (newTimer <= 0) {
+              setCurrentPhase('inhale');
+              setTimer(0);
+              return 0;
+            }
+            return newTimer;
+          });
+        }, 1000);
+        
         setTimeout(() => {
           setCurrentPhase('inhale');
           setTimer(0);
@@ -165,28 +191,33 @@ const BreathingScreen = ({ navigation }) => {
           setTimer(prev => {
             const newTimer = prev + 1;
             const phases = Object.keys(technique.phases);
-            let currentPhaseIndex = 0;
+            const cycleTimer = newTimer % technique.totalCycle;
             let accumulatedTime = 0;
+            let newPhase = phases[0];
             
-            // Determine current phase based on timer
+            // Determine current phase based on cycle timer
             for (let i = 0; i < phases.length; i++) {
               const phaseTime = technique.phases[phases[i]];
-              if (newTimer <= accumulatedTime + phaseTime) {
-                currentPhaseIndex = i;
+              if (cycleTimer < accumulatedTime + phaseTime) {
+                newPhase = phases[i];
                 break;
               }
               accumulatedTime += phaseTime;
             }
             
-            const newPhase = phases[currentPhaseIndex];
+            // Handle edge case when cycleTimer equals totalCycle
+            if (cycleTimer === 0) {
+              newPhase = phases[0];
+            }
+            
+            // Update phase if changed
             if (newPhase !== currentPhase) {
               setCurrentPhase(newPhase);
             }
             
             // Reset cycle when complete
-            if (newTimer >= technique.totalCycle) {
+            if (newTimer > 0 && newTimer % technique.totalCycle === 0) {
               setCycleCount(prev => prev + 1);
-              return 0;
             }
             
             return newTimer;
@@ -234,7 +265,14 @@ const BreathingScreen = ({ navigation }) => {
           <View style={styles.header}>
             <TouchableOpacity
               style={styles.closeButton}
-              onPress={stopBreathingSession}
+              onPress={() => {
+                setIsActive(false);
+                navigation.navigate('BreathingFeedback', {
+                  sessionType: 'breathing',
+                  duration: totalTime,
+                  technique: selectedTechnique
+                });
+              }}
             >
               <Ionicons name="close" size={24} color="rgba(255,255,255,0.8)" />
             </TouchableOpacity>
@@ -273,27 +311,44 @@ const BreathingScreen = ({ navigation }) => {
             </Text>
             
             <Text style={styles.timerText}>
-              {technique.phases[currentPhase] - (timer % technique.phases[currentPhase] || technique.phases[currentPhase])}
+              {(() => {
+                // During preparation phase, show countdown timer directly
+                if (currentPhase === 'prepare') {
+                  return timer;
+                }
+                
+                const phases = Object.keys(technique.phases);
+                const cycleTimer = timer % technique.totalCycle;
+                let accumulatedTime = 0;
+                let currentPhaseTime = 0;
+                let timeInCurrentPhase = 0;
+                
+                // Find current phase and calculate remaining time
+                for (let i = 0; i < phases.length; i++) {
+                  const phaseTime = technique.phases[phases[i]];
+                  if (cycleTimer < accumulatedTime + phaseTime) {
+                    currentPhaseTime = phaseTime;
+                    timeInCurrentPhase = cycleTimer - accumulatedTime;
+                    break;
+                  }
+                  accumulatedTime += phaseTime;
+                }
+                
+                // Handle edge case when cycleTimer equals totalCycle (should show first phase time)
+                if (cycleTimer === 0) {
+                  currentPhaseTime = technique.phases[phases[0]];
+                  timeInCurrentPhase = 0;
+                }
+                
+                const remainingTime = Math.ceil(currentPhaseTime - timeInCurrentPhase);
+                return remainingTime > 0 ? remainingTime : currentPhaseTime;
+              })()}
             </Text>
           </View>
           
           {/* Controls */}
           <View style={styles.controls}>
-            <TouchableOpacity
-              style={styles.pauseButton}
-              onPress={() => {
-                Alert.alert(
-                  'Session Complete',
-                  `Great job! You completed ${cycleCount} breathing cycles.`,
-                  [
-                    { text: 'Continue', style: 'cancel' },
-                    { text: 'Finish', onPress: stopBreathingSession }
-                  ]
-                );
-              }}
-            >
-              <Ionicons name="pause" size={24} color="rgba(255,255,255,0.9)" />
-            </TouchableOpacity>
+
           </View>
         </SafeAreaView>
       </LinearGradient>
@@ -558,16 +613,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingBottom: 40,
   },
-  pauseButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
+
 });
 
 export default BreathingScreen;
