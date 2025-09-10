@@ -6,11 +6,30 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Animated,
+  Vibration,
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Audio } from 'expo-av';
+import { useFocusEffect } from '@react-navigation/native';
 import { mindfulnessMessages } from '../data/mindfulnessMessages';
+
+// Background music files
+const backgroundMusic = [
+  require('../../assets/songs/Dreaming in Slow Motion.mp3'),
+  require('../../assets/songs/Dreaming in Slow Motion 2.mp3'),
+  require('../../assets/songs/Drift Away.mp3'),
+  require('../../assets/songs/Drift Away 2.mp3'),
+  require('../../assets/songs/Driftwood Dreams.mp3'),
+  require('../../assets/songs/Driftwood Dreams (1).mp3'),
+  require('../../assets/songs/Moonlit Drift.mp3'),
+  require('../../assets/songs/Moonlit Drift 2.mp3'),
+  require('../../assets/songs/Whispered Waves.mp3'),
+  require('../../assets/songs/Whispered Waves 2.mp3'),
+  require('../../assets/songs/Whispering Tides.mp3'),
+  require('../../assets/songs/Whispering Tides 2.mp3'),
+];
 
 const BreathingScreen = ({ navigation }) => {
   const [selectedTechnique, setSelectedTechnique] = useState(null);
@@ -21,6 +40,9 @@ const BreathingScreen = ({ navigation }) => {
   const [timer, setTimer] = useState(0);
   const [totalTime, setTotalTime] = useState(0);
   const [maxSessionTime] = useState(120); // 2 minutos máximo
+  const [backgroundMusicSound, setBackgroundMusicSound] = useState(null);
+  const [currentMusicIndex, setCurrentMusicIndex] = useState(0);
+  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   
   const breathingAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -70,6 +92,64 @@ const BreathingScreen = ({ navigation }) => {
   
   const getCurrentTechnique = () => {
     return breathingTechniques.find(t => t.id === selectedTechnique);
+  };
+
+  // Función para obtener un índice aleatorio de música diferente al actual
+  const getRandomMusicIndex = (currentIndex) => {
+    if (backgroundMusic.length <= 1) return 0;
+    let randomIndex;
+    do {
+      randomIndex = Math.floor(Math.random() * backgroundMusic.length);
+    } while (randomIndex === currentIndex);
+    return randomIndex;
+  };
+
+  // Función para reproducir música de fondo
+  const playBackgroundMusic = async () => {
+    try {
+      if (backgroundMusicSound) {
+        await backgroundMusicSound.unloadAsync();
+      }
+
+      const randomIndex = getRandomMusicIndex(currentMusicIndex);
+      setCurrentMusicIndex(randomIndex);
+      
+      const { sound } = await Audio.Sound.createAsync(
+        backgroundMusic[randomIndex],
+        {
+          shouldPlay: true,
+          isLooping: false,
+          volume: 0.08, // Volumen más bajo
+        }
+      );
+      
+      setBackgroundMusicSound(sound);
+      setIsMusicPlaying(true);
+      
+      // Configurar callback para cuando termine la canción
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.didJustFinish && !status.isLooping) {
+          // Reproducir siguiente canción aleatoria
+          playBackgroundMusic();
+        }
+      });
+    } catch (error) {
+      console.log('Error playing background music:', error);
+    }
+  };
+
+  // Función para detener música de fondo
+  const stopBackgroundMusic = async () => {
+    try {
+      if (backgroundMusicSound) {
+        await backgroundMusicSound.stopAsync();
+        await backgroundMusicSound.unloadAsync();
+        setBackgroundMusicSound(null);
+        setIsMusicPlaying(false);
+      }
+    } catch (error) {
+      console.log('Error stopping background music:', error);
+    }
   };
   
   const getPhaseInstruction = () => {
@@ -124,15 +204,39 @@ const BreathingScreen = ({ navigation }) => {
     setCurrentMessage(0);
     setTimer(0);
     setTotalTime(0);
+    // Iniciar música de fondo cuando comience la sesión
+    playBackgroundMusic();
   };
   
-  const stopBreathingSession = () => {
+  const stopBreathingSession = async () => {
     setIsActive(false);
     setSelectedTechnique(null);
     setCurrentPhase('prepare');
     setCycleCount(0);
     setTimer(0);
     setTotalTime(0);
+    
+    // Limpieza agresiva de audio cuando termine la sesión
+    try {
+      await stopBackgroundMusic();
+      
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        staysActiveInBackground: false,
+        playsInSilentModeIOS: false,
+        shouldDuckAndroid: false,
+        playThroughEarpieceAndroid: false,
+      });
+      
+      for (let i = 0; i < 2; i++) {
+        await Audio.setIsEnabledAsync(false);
+        await new Promise(resolve => setTimeout(resolve, 200));
+        await Audio.setIsEnabledAsync(true);
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    } catch (error) {
+      console.log('Error in force stop audio:', error);
+    }
   };
   
   // Main breathing logic
@@ -151,11 +255,12 @@ const BreathingScreen = ({ navigation }) => {
           // Verificar si se alcanzó el tiempo máximo
           if (newTime >= maxSessionTime) {
             setIsActive(false);
-            navigation.navigate('BreathingFeedback', {
-              sessionType: 'breathing',
-              duration: newTime,
-              technique: selectedTechnique
-            });
+            // Limpieza agresiva de audio antes de navegar
+                navigation.navigate('BreathingFeedback', {
+                  sessionType: 'breathing',
+                  duration: newTime,
+                  technique: selectedTechnique
+                });
           }
           return newTime;
         });
@@ -251,6 +356,15 @@ const BreathingScreen = ({ navigation }) => {
       if (messageInterval) clearInterval(messageInterval);
     };
   }, [isActive, selectedTechnique, currentPhase]);
+
+  // Cleanup al desmontar el componente
+  useEffect(() => {
+    return () => {
+      stopBackgroundMusic();
+    };
+  }, []);
+
+
   
   if (isActive && selectedTechnique) {
     const technique = getCurrentTechnique();
@@ -265,7 +379,7 @@ const BreathingScreen = ({ navigation }) => {
           <View style={styles.header}>
             <TouchableOpacity
               style={styles.closeButton}
-              onPress={() => {
+              onPress={async () => {
                 setIsActive(false);
                 navigation.navigate('BreathingFeedback', {
                   sessionType: 'breathing',

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Audio } from 'expo-av';
 
 const BreathingFeedbackScreen = ({ navigation, route }) => {
   const [selectedMood, setSelectedMood] = useState(null);
@@ -19,10 +20,92 @@ const BreathingFeedbackScreen = ({ navigation, route }) => {
   const { sessionType = 'breathing', duration = 0, technique = '' } = route?.params || {};
 
   React.useEffect(() => {
+    // Stop all audio when entering feedback screen
+    const stopAllAudio = async () => {
+      try {
+        // Set audio mode to interrupt any playing audio and disable background playback
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          staysActiveInBackground: false,
+          playsInSilentModeIOS: false,
+          shouldDuckAndroid: false,
+          playThroughEarpieceAndroid: false,
+        });
+        
+        // Force stop all sound instances by disabling and re-enabling audio system
+        await Audio.setIsEnabledAsync(false);
+        await new Promise(resolve => setTimeout(resolve, 300)); // Longer delay to ensure cleanup
+        await Audio.setIsEnabledAsync(true);
+        
+        // Set a more restrictive audio mode to prevent any background audio
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          staysActiveInBackground: false,
+          playsInSilentModeIOS: false,
+          shouldDuckAndroid: false,
+          playThroughEarpieceAndroid: false,
+        });
+        
+        // Small delay before resetting to normal mode
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Reset audio mode for normal operation
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          staysActiveInBackground: false,
+          playsInSilentModeIOS: true,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
+        });
+      } catch (error) {
+        console.log('Error stopping audio:', error);
+      }
+    };
+    
+    // Multiple attempts to ensure all audio stops
+    const forceStopAllAudio = async () => {
+      try {
+        // First attempt - immediate stop
+        await stopAllAudio();
+        
+        // Second attempt after delay
+        setTimeout(async () => {
+          await stopAllAudio();
+        }, 500);
+        
+        // Third attempt with more aggressive settings
+        setTimeout(async () => {
+          try {
+            await Audio.setAudioModeAsync({
+              allowsRecordingIOS: false,
+              staysActiveInBackground: false,
+              playsInSilentModeIOS: false,
+              shouldDuckAndroid: false,
+              playThroughEarpieceAndroid: false,
+            });
+            
+            // Multiple disable/enable cycles
+            for (let i = 0; i < 3; i++) {
+              await Audio.setIsEnabledAsync(false);
+              await new Promise(resolve => setTimeout(resolve, 200));
+              await Audio.setIsEnabledAsync(true);
+              await new Promise(resolve => setTimeout(resolve, 100));
+            }
+          } catch (error) {
+            console.log('Error in aggressive audio stop:', error);
+          }
+        }, 1000);
+      } catch (error) {
+        console.log('Error in force stop audio:', error);
+      }
+    };
+    
+    forceStopAllAudio();
+    
     Animated.spring(scaleValue, {
       toValue: 1,
-      tension: 50,
-      friction: 7,
+      tension: 100,
+      friction: 8,
       useNativeDriver: true,
     }).start();
   }, []);

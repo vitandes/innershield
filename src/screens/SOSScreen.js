@@ -21,14 +21,16 @@ const SOSScreen = ({ navigation }) => {
   const [breathingActive, setBreathingActive] = useState(false);
   const [breathingPhase, setBreathingPhase] = useState('preparation'); // 'preparation', 'inhale', 'hold', 'exhale', 'reflection'
   const [breathingCount, setBreathingCount] = useState(0);
-  const [sessionPhase, setSessionPhase] = useState(0); // 0: prep, 1: breathing, 2: reflection
+  const [sessionPhase, setSessionPhase] = useState(0); // 0: preparation, 1: breathing, 2: reflection
   const [currentMessage, setCurrentMessage] = useState(0);
   const [sound, setSound] = useState(null);
+  const [backgroundMusic, setBackgroundMusic] = useState(null);
   const [showWelcome, setShowWelcome] = useState(true);
   const [totalSessionTime, setTotalSessionTime] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [lastPlayedSound, setLastPlayedSound] = useState(null);
-  const [preparationMessageCount, setPreparationMessageCount] = useState(0);
+  const preparationMessageCountRef = useRef(0);
+  const preparationPhaseHasRun = useRef(false);
   
   // Referencias para intervalos y timers
   const messageIntervalRef = useRef(null);
@@ -39,37 +41,37 @@ const SOSScreen = ({ navigation }) => {
   const welcomeAnim = useRef(new Animated.Value(0)).current;
   const floatAnim = useRef(new Animated.Value(0)).current;
   
-  // Cleanup de audio cuando el componente pierde el foco
   useFocusEffect(
     React.useCallback(() => {
+      // This effect runs when the screen comes into focus.
+      // It resets the state of the screen to its initial values.
+      setSessionPhase(0);
+      setBreathingActive(false);
+      setShowWelcome(true);
+      setBreathingCount(0);
+      setCurrentMessage(0);
+      setTotalSessionTime(0);
+      setIsPaused(false);
+      preparationPhaseHasRun.current = false;
+
+      // It also clears any running timers.
+      if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
+      if (mainIntervalRef.current) clearInterval(mainIntervalRef.current);
+      if (phaseTimeoutRef.current) clearTimeout(phaseTimeoutRef.current);
+
+      // The function returned here is the cleanup function.
+      // It runs when the screen loses focus.
       return () => {
-        // Cleanup cuando el componente se desmonta o pierde el foco
         if (sound) {
-          try {
-            sound.stopAsync();
-            sound.unloadAsync();
-          } catch (error) {
-            console.log('Error stopping sound on cleanup:', error);
-          }
+          sound.stopAsync().catch(() => {});
+          sound.unloadAsync().catch(() => {});
         }
-        
-        // Configurar audio para permitir reproducción
-        try {
-          Audio.setAudioModeAsync({
-            allowsRecordingIOS: false,
-            staysActiveInBackground: false,
-            playsInSilentModeIOS: true, // Permitir sonido en modo silencioso
-            shouldDuckAndroid: false,
-            playThroughEarpieceAndroid: false,
-          });
-          
-          // Asegurar que el audio esté habilitado
-          Audio.setIsEnabledAsync(true);
-        } catch (error) {
-          console.log('Error in audio setup:', error);
+        if (backgroundMusic) {
+          backgroundMusic.stopAsync().catch(() => {});
+          backgroundMusic.unloadAsync().catch(() => {});
         }
       };
-    }, [sound])
+    }, [])
   );
 
   // Removed panic mode useEffect - now using direct mindfulness approach
@@ -101,9 +103,25 @@ const SOSScreen = ({ navigation }) => {
           duration: 800,
           useNativeDriver: true,
         })
-      ]).start(() => {
+      ]).start(async () => {
         setShowWelcome(false);
         setBreathingActive(true);
+        
+        // Iniciar música de fondo cuando showWelcome cambia a false
+        try {
+          // Usar Moonlit Drift para sesiones de mindfulness por defecto
+          const { sound: bgMusic } = await Audio.Sound.createAsync(
+            require('../../assets/songs/Moonlit Drift.mp3'),
+            {
+              shouldPlay: true,
+              isLooping: true,
+              volume: 0.12, // Volumen suave para mindfulness
+            }
+          );
+          setBackgroundMusic(bgMusic);
+        } catch (error) {
+          console.log('Error loading background music:', error);
+        }
       });
       
       // Continuous floating animation
@@ -124,6 +142,42 @@ const SOSScreen = ({ navigation }) => {
     }
   }, [showWelcome]);
 
+  // useEffect para cambiar música cuando se inicia ejercicio de respiración
+  // NOTA: Este useEffect está comentado temporalmente para evitar conflictos
+  // con la música que se inicia en el callback de la animación
+  /*
+  useEffect(() => {
+    const loadBreathingMusic = async () => {
+      if (breathingActive && !showWelcome && backgroundMusic) {
+        // Detener música actual
+        try {
+          await backgroundMusic.stopAsync();
+          await backgroundMusic.unloadAsync();
+        } catch (error) {
+          console.log('Error stopping current music:', error);
+        }
+        
+        // Cargar música específica para ejercicios de respiración
+        try {
+          const { sound: bgMusic } = await Audio.Sound.createAsync(
+            require('../../assets/songs/Whispered Waves.mp3'),
+            {
+              shouldPlay: true,
+              isLooping: true,
+              volume: 0.15, // Volumen para ejercicios de respiración
+            }
+          );
+          setBackgroundMusic(bgMusic);
+        } catch (error) {
+          console.log('Error loading breathing exercise music:', error);
+        }
+      }
+    };
+    
+    loadBreathingMusic();
+  }, [breathingActive, showWelcome]);
+  */
+
   // Función para obtener un mensaje aleatorio diferente al actual
   const getRandomMessage = (messagesArray, currentIndex) => {
     if (messagesArray.length <= 1) return 0;
@@ -134,62 +188,67 @@ const SOSScreen = ({ navigation }) => {
     return randomIndex;
   };
 
-  // Efecto separado para el intervalo de mensajes
+  // Efecto para la fase de preparación
   useEffect(() => {
-    if (breathingActive && !showWelcome && !isPaused) {
-      // Cambio de mensaje aleatorio cada 15 segundos para todas las fases
+    let secondMessageTimer;
+    let phaseChangeTimer;
+
+    if (breathingActive && !showWelcome && !isPaused && sessionPhase === 0 && !preparationPhaseHasRun.current) {
+      preparationPhaseHasRun.current = true;
+      // 1. Reproducir el primer mensaje inmediatamente
+      setCurrentMessage(prev => getRandomMessage(mindfulnessMessages.preparation, prev));
+      animateMessageChange();
+      setLastPlayedSound(null);
+
+      // 2. Después de 10 segundos, reproducir el segundo mensaje
+      secondMessageTimer = setTimeout(() => {
+        setCurrentMessage(prev => getRandomMessage(mindfulnessMessages.preparation, prev));
+        animateMessageChange();
+        setLastPlayedSound(null);
+      }, 10000);
+
+      // 3. Después de 20 segundos, cambiar a la fase de respiración
+      phaseChangeTimer = setTimeout(() => {
+        setSessionPhase(1);
+        const randomStartIndex = Math.floor(Math.random() * mindfulnessMessages.breathing.length);
+        setCurrentMessage(randomStartIndex);
+        setBreathingCount(0);
+        setLastPlayedSound(null);
+      }, 20000);
+    }
+
+    return () => {
+      clearTimeout(secondMessageTimer);
+      clearTimeout(phaseChangeTimer);
+    };
+  }, [breathingActive, showWelcome, isPaused, sessionPhase]);
+
+  // Efecto para el intervalo de mensajes en otras fases (breathing, reflection)
+  useEffect(() => {
+    if (breathingActive && !showWelcome && !isPaused && (sessionPhase === 1 || sessionPhase === 2)) {
       messageIntervalRef.current = setInterval(() => {
         setCurrentMessage(prev => {
           let messagesArray;
-          switch (sessionPhase) {
-            case 0:
-              messagesArray = mindfulnessMessages.preparation;
-              // Incrementar contador solo en fase de preparación
-              setPreparationMessageCount(prevCount => {
-                const newCount = prevCount + 1;
-                // Después de 2 mensajes, cambiar a breathing
-                if (newCount >= 2) {
-                  // Delay the phase change to avoid conflicts
-                  setTimeout(() => {
-                    setSessionPhase(1);
-                    // Start with a random message instead of always 0
-                    const randomStartIndex = Math.floor(Math.random() * mindfulnessMessages.breathing.length);
-                    setCurrentMessage(randomStartIndex);
-                    setBreathingCount(0);
-                    setLastPlayedSound(null);
-                    setPreparationMessageCount(0); // Reset counter
-                  }, 1000); // Increased delay to prevent rapid changes
-                  return prevCount; // No incrementar más, mantener el contador actual
-                }
-                return newCount;
-              });
-              break;
-            case 1:
-              messagesArray = mindfulnessMessages.breathing;
-              break;
-            case 2:
-              messagesArray = mindfulnessMessages.reflection;
-              break;
-            default:
-              messagesArray = mindfulnessMessages.breathing;
+          if (sessionPhase === 1) {
+            messagesArray = mindfulnessMessages.breathing;
+          } else {
+            messagesArray = mindfulnessMessages.reflection;
           }
           const newIndex = getRandomMessage(messagesArray, prev);
-          // Reset lastPlayedSound when message changes to allow new sound to play
           setLastPlayedSound(null);
-          // Animate message change
           animateMessageChange();
           return newIndex;
         });
-      }, 15000); // Increased to 15 seconds for better user experience
+      }, 10000);
     }
-    
+
     return () => {
       if (messageIntervalRef.current) {
         clearInterval(messageIntervalRef.current);
         messageIntervalRef.current = null;
       }
     };
-  }, [breathingActive, showWelcome, isPaused, sessionPhase]); // Added sessionPhase to dependencies
+  }, [breathingActive, showWelcome, isPaused, sessionPhase]);
 
   useEffect(() => {
     if (breathingActive && !showWelcome && !isPaused) {
@@ -278,7 +337,7 @@ const SOSScreen = ({ navigation }) => {
   }, [sound]);
 
   // Función para iniciar directamente la sesión de mindfulness
-  const startMindfulnessSession = () => {
+  const startMindfulnessSession = async () => {
     setShowWelcome(true);
     setSessionPhase(0);
     // Start with a random preparation message
@@ -288,6 +347,8 @@ const SOSScreen = ({ navigation }) => {
     setBreathingPhase('preparation');
     setLastPlayedSound(null); // Reset to allow session sounds from start
     setPreparationMessageCount(0); // Reset preparation message counter
+    
+    // La música se iniciará cuando showWelcome cambie a false
   };
 
   // Auto-iniciar la sesión al cargar la pantalla
@@ -517,7 +578,7 @@ const SOSScreen = ({ navigation }) => {
     ]).start();
   };
 
-  const startBreathingExercise = () => {
+  const startBreathingExercise = async () => {
     setBreathingActive(true);
     setBreathingCount(0);
     setSessionPhase(0);
@@ -526,6 +587,8 @@ const SOSScreen = ({ navigation }) => {
     setCurrentMessage(randomPrepIndex);
     setBreathingPhase('preparation');
     setLastPlayedSound(null); // Reset to allow exercise sounds from start
+    
+    // La música se iniciará cuando showWelcome cambie a false
   };
 
   const stopBreathingExercise = async () => {
@@ -542,6 +605,13 @@ const SOSScreen = ({ navigation }) => {
       await sound.stopAsync();
       await sound.unloadAsync();
       setSound(null);
+    }
+    
+    // Detener música de fondo
+    if (backgroundMusic) {
+      await backgroundMusic.stopAsync();
+      await backgroundMusic.unloadAsync();
+      setBackgroundMusic(null);
     }
   };
 
@@ -575,6 +645,17 @@ const SOSScreen = ({ navigation }) => {
           console.log('Error stopping voice sound:', error);
         }
         setSound(null);
+      }
+      
+      // Detener y limpiar música de fondo
+      if (backgroundMusic) {
+        try {
+          await backgroundMusic.stopAsync();
+          await backgroundMusic.unloadAsync();
+        } catch (error) {
+          console.log('Error stopping background music:', error);
+        }
+        setBackgroundMusic(null);
       }
       
       // Configurar audio para limpieza rápida
