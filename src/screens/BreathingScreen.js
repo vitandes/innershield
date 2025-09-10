@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Audio } from 'expo-av';
+import { Audio, InterruptionModeIOS } from 'expo-av';
 import { useFocusEffect } from '@react-navigation/native';
 import { mindfulnessMessages } from '../data/mindfulnessMessages';
 
@@ -31,6 +31,15 @@ const backgroundMusic = [
   require('../../assets/songs/Whispering Tides 2.mp3'),
 ];
 
+const voicePrompts = {
+  'Get ready to breathe': require('../../assets/breathe/Get_ready_to_breathe.mp3'),
+  'Breathe in slowly': require('../../assets/breathe/Breathe_in_slowly.mp3'),
+  'Hold your breath': require('../../assets/breathe/Hold_your_breath.mp3'),
+  'Breathe out gently': require('../../assets/breathe/Breathe_out_gently.mp3'),
+  'Pause naturally': require('../../assets/breathe/Pause_naturally.mp3'),
+  'Breathe naturally': require('../../assets/breathe/Breathe_naturally.mp3'),
+};
+
 const BreathingScreen = ({ navigation }) => {
   const [selectedTechnique, setSelectedTechnique] = useState(null);
   const [isActive, setIsActive] = useState(false);
@@ -40,9 +49,10 @@ const BreathingScreen = ({ navigation }) => {
   const [timer, setTimer] = useState(0);
   const [totalTime, setTotalTime] = useState(0);
   const [maxSessionTime] = useState(120); // 2 minutos máximo
-  const [backgroundMusicSound, setBackgroundMusicSound] = useState(null);
+  const backgroundMusicSound = useRef(null);
   const [currentMusicIndex, setCurrentMusicIndex] = useState(0);
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+  const voiceSound = useRef(null);
   
   const breathingAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -107,8 +117,16 @@ const BreathingScreen = ({ navigation }) => {
   // Función para reproducir música de fondo
   const playBackgroundMusic = async () => {
     try {
-      if (backgroundMusicSound) {
-        await backgroundMusicSound.unloadAsync();
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        interruptionModeIOS: InterruptionModeIOS.DoNotMix,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      });
+
+      if (backgroundMusicSound.current) {
+        await backgroundMusicSound.current.unloadAsync();
       }
 
       const randomIndex = getRandomMusicIndex(currentMusicIndex);
@@ -123,7 +141,7 @@ const BreathingScreen = ({ navigation }) => {
         }
       );
       
-      setBackgroundMusicSound(sound);
+      backgroundMusicSound.current = sound;
       setIsMusicPlaying(true);
       
       // Configurar callback para cuando termine la canción
@@ -138,13 +156,38 @@ const BreathingScreen = ({ navigation }) => {
     }
   };
 
+  const playVoicePrompt = async (instruction) => {
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        interruptionModeIOS: InterruptionModeIOS.DoNotMix,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      });
+
+      if (voiceSound.current) {
+        await voiceSound.current.unloadAsync();
+        voiceSound.current = null;
+      }
+
+      const source = voicePrompts[instruction];
+      if (source) {
+        const { sound } = await Audio.Sound.createAsync(source, { shouldPlay: true });
+        voiceSound.current = sound;
+      }
+    } catch (error) {
+      console.log('Error playing voice prompt:', error);
+    }
+  };
+
   // Función para detener música de fondo
   const stopBackgroundMusic = async () => {
     try {
-      if (backgroundMusicSound) {
-        await backgroundMusicSound.stopAsync();
-        await backgroundMusicSound.unloadAsync();
-        setBackgroundMusicSound(null);
+      if (backgroundMusicSound.current) {
+        await backgroundMusicSound.current.stopAsync();
+        await backgroundMusicSound.current.unloadAsync();
+        backgroundMusicSound.current = null;
         setIsMusicPlaying(false);
       }
     } catch (error) {
@@ -218,7 +261,11 @@ const BreathingScreen = ({ navigation }) => {
     
     // Limpieza agresiva de audio cuando termine la sesión
     try {
-      await stopBackgroundMusic();
+            await stopBackgroundMusic();
+      if (voiceSound.current) {
+        await voiceSound.current.unloadAsync();
+        voiceSound.current = null;
+      }
       
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
@@ -239,7 +286,14 @@ const BreathingScreen = ({ navigation }) => {
     }
   };
   
-  // Main breathing logic
+  useEffect(() => {
+    if (isActive && currentPhase) {
+      const instruction = getPhaseInstruction();
+      if (instruction) {
+        playVoicePrompt(instruction);
+      }
+    }
+  }, [currentPhase, isActive]);
   useEffect(() => {
     let interval;
     let totalInterval;
@@ -357,12 +411,7 @@ const BreathingScreen = ({ navigation }) => {
     };
   }, [isActive, selectedTechnique, currentPhase]);
 
-  // Cleanup al desmontar el componente
-  useEffect(() => {
-    return () => {
-      stopBackgroundMusic();
-    };
-  }, []);
+
 
 
   
