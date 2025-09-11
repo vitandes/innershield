@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,11 +11,72 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
+import { dailyMessages } from '../data/dailyMessages';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const HomeScreen = ({ navigation }) => {
   const { colors, styles: themeStyles } = useTheme();
 
-  const [dailyMessage] = useState('Every small step counts. Today is a new opportunity to take care of your wellbeing.');
+  const [dailyMessage, setDailyMessage] = useState('');
+
+  useEffect(() => {
+    const updateDailyMessage = async () => {
+      try {
+        const lastUpdateString = await AsyncStorage.getItem('lastDailyMessageUpdate');
+        const lastUpdate = lastUpdateString ? new Date(lastUpdateString) : null;
+        const now = new Date();
+        const eightAmToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 0, 0);
+
+        let usedIndices = [];
+        const usedIndicesString = await AsyncStorage.getItem('usedDailyMessagesIndices');
+        if (usedIndicesString) {
+          usedIndices = JSON.parse(usedIndicesString);
+        }
+
+        const needsUpdate = !lastUpdate || (now >= eightAmToday && lastUpdate < eightAmToday);
+
+        if (needsUpdate) {
+          if (usedIndices.length >= dailyMessages.length) {
+            usedIndices = [];
+          }
+
+          let availableMessages = dailyMessages.filter((_, index) => !usedIndices.includes(index));
+          if (availableMessages.length === 0) {
+            usedIndices = [];
+            availableMessages = dailyMessages;
+          }
+
+          const randomIndex = Math.floor(Math.random() * availableMessages.length);
+          const selectedMessage = availableMessages[randomIndex];
+          const originalIndex = dailyMessages.indexOf(selectedMessage);
+
+          usedIndices.push(originalIndex);
+          await AsyncStorage.setItem('usedDailyMessagesIndices', JSON.stringify(usedIndices));
+          await AsyncStorage.setItem('lastDailyMessageUpdate', now.toISOString());
+          setDailyMessage(selectedMessage);
+        } else {
+          // If no update is needed, load the last used message
+          if (usedIndices.length > 0) {
+            const lastUsedIndex = usedIndices[usedIndices.length - 1];
+            setDailyMessage(dailyMessages[lastUsedIndex]);
+          } else {
+            // Fallback to a random message if something is wrong
+            const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
+            setDailyMessage(dailyMessages[dayOfYear % dailyMessages.length]);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load daily message:", error);
+        const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
+        setDailyMessage(dailyMessages[dayOfYear % dailyMessages.length]);
+      }
+    };
+
+    updateDailyMessage();
+    const interval = setInterval(updateDailyMessage, 60 * 60 * 1000); // Check every hour
+
+    return () => clearInterval(interval);
+  }, []);
   
   // Daily missions state - Updated to reflect only available functionalities
   const [dailyMissions, setDailyMissions] = useState([

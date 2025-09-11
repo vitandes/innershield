@@ -43,9 +43,9 @@ function TabNavigator() {
           backgroundColor: colors.surface,
           borderTopWidth: 1,
           borderTopColor: colors.border,
-          paddingBottom: 5,
+          paddingBottom: 25, // Aumentado para más espacio
           paddingTop: 5,
-          height: 60,
+          height: 80, // Aumentado para el nuevo padding
         },
         headerShown: false,
       })}

@@ -1,9 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Switch, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Notifications from 'expo-notifications';
+import { dailyMessages } from '../data/dailyMessages';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
+
+const scheduleDailyNotification = async () => {
+  const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
+  const message = dailyMessages[dayOfYear % dailyMessages.length];
+
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: "Message of the Day",
+      body: message,
+    },
+    trigger: {
+      hour: 8,
+      minute: 0,
+      repeats: true,
+    },
+  });
+};
+
+const cancelAllNotifications = async () => {
+  await Notifications.cancelAllScheduledNotificationsAsync();
+};
 
 const ProfileScreen = ({ navigation }) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+
+  useEffect(() => {
+    Notifications.requestPermissionsAsync();
+  }, []);
+
+  const handleNotificationsToggle = async (value) => {
+    setNotificationsEnabled(value);
+    if (value) {
+      await scheduleDailyNotification();
+      Alert.alert('Notifications Enabled', 'You will receive a daily message at 8:00 AM.');
+    } else {
+      await cancelAllNotifications();
+      Alert.alert('Notifications Disabled', 'You will no longer receive daily messages.');
+    }
+  };
 
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
@@ -38,7 +84,7 @@ const ProfileScreen = ({ navigation }) => {
             <Text style={styles.menuItemText}>Enable Notifications</Text>
             <Switch
               value={notificationsEnabled}
-              onValueChange={setNotificationsEnabled}
+              onValueChange={handleNotificationsToggle}
             />
           </View>
 
