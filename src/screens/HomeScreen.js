@@ -110,8 +110,13 @@ const HomeScreen = ({ navigation }) => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Personalized greeting */}
         <View style={styles.welcomeSection}>
-          <Text style={styles.welcomeText}>Hello! 👋</Text>
-          <Text style={styles.welcomeSubtext}>Your wellbeing is our priority</Text>
+          <View>
+            <Text style={styles.welcomeText}>Hello! 👋</Text>
+            <Text style={styles.welcomeSubtext}>Your wellbeing is our priority</Text>
+          </View>
+          <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+            <Ionicons name="person-circle-outline" size={40} color={colors.text} />
+          </TouchableOpacity>
         </View>
 
         {/* Prominent SOS Button */}
@@ -275,9 +280,11 @@ const getStyles = (colors) => StyleSheet.create({
     padding: 20,
   },
   welcomeSection: {
-    padding: 20,
-    marginBottom: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 24,
+    paddingHorizontal: 20,
   },
   welcomeText: {
     fontSize: 28,

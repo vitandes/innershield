@@ -15,6 +15,7 @@ import MoreScreen from '../screens/MoreScreen';
 import BreathingScreen from '../screens/BreathingScreen';
 import SleepMelodiesScreen from '../screens/SleepMelodiesScreen';
 import JournalScreen from '../screens/JournalScreen';
+import ProfileScreen from '../screens/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -130,6 +131,11 @@ export default function AppNavigator() {
         <Stack.Screen 
           name="Journal" 
           component={JournalScreen} 
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen 
+          name="Profile" 
+          component={ProfileScreen} 
           options={{ headerShown: false }}
         />
       </Stack.Navigator>
