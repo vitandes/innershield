@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { updateShieldLevel } from '../utils/statsUtils';
 
 const SOSFeedbackScreen = ({ navigation, route }) => {
   const [selectedMood, setSelectedMood] = useState(null);
@@ -28,11 +30,11 @@ const SOSFeedbackScreen = ({ navigation, route }) => {
   }, []);
 
   const moodOptions = [
-    { id: 'much_better', emoji: '😊', label: 'Much Better', color: '#4CAF50' },
-    { id: 'better', emoji: '🙂', label: 'Better', color: '#8BC34A' },
-    { id: 'same', emoji: '😐', label: 'Same', color: '#FFC107' },
-    { id: 'worse', emoji: '😔', label: 'Worse', color: '#FF9800' },
-    { id: 'much_worse', emoji: '😢', label: 'Much Worse', color: '#F44336' },
+    { id: 'much_better', emoji: '😊', label: 'Much Better', color: '#4CAF50', value: 10 },
+    { id: 'better', emoji: '🙂', label: 'Better', color: '#8BC34A', value: 8 },
+    { id: 'same', emoji: '😐', label: 'Same', color: '#FFC107', value: 5 },
+    { id: 'worse', emoji: '😔', label: 'Worse', color: '#FF9800', value: 3 },
+    { id: 'much_worse', emoji: '😢', label: 'Much Worse', color: '#F44336', value: 1 },
   ];
 
   const helpfulnessOptions = [
@@ -49,13 +51,57 @@ const SOSFeedbackScreen = ({ navigation, route }) => {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  const handleSubmit = () => {
-    // Here you could save the feedback to analytics or storage
-    console.log('Feedback submitted:', {
-      mood: selectedMood,
-      helpfulness: selectedHelpfulness,
-      sessionDuration,
-    });
+  const handleSubmit = async () => {
+    try {
+      // 1. Update wellness metrics
+      const storedMetrics = await AsyncStorage.getItem('wellnessMetrics');
+      let metrics = storedMetrics ? JSON.parse(storedMetrics) : {
+          week: { shieldLevel: 0, moodAverage: 0, activeDays: 0, completedExercises: 0, trend: 'stable' },
+          month: { shieldLevel: 0, moodAverage: 0, activeDays: 0, completedExercises: 0, trend: 'stable' },
+          year: { shieldLevel: 0, moodAverage: 0, activeDays: 0, completedExercises: 0, trend: 'stable' },
+      };
+
+      metrics.week.completedExercises += 1;
+      metrics.month.completedExercises += 1;
+      metrics.year.completedExercises += 1;
+
+      await AsyncStorage.setItem('wellnessMetrics', JSON.stringify(metrics));
+
+      // 2. Update mood data if mood was selected
+      if (selectedMood) {
+        const selectedMoodOption = moodOptions.find(option => option.id === selectedMood);
+        const moodValue = selectedMoodOption ? selectedMoodOption.value : 5;
+        
+        // Get current day of week
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const today = days[new Date().getDay()];
+        
+        // Update mood data for the current day
+        const storedMoodData = await AsyncStorage.getItem('moodData');
+        let moodData = storedMoodData ? JSON.parse(storedMoodData) : [];
+        
+        // Find today's entry and update it
+        const todayIndex = moodData.findIndex(item => item.day === today);
+        if (todayIndex !== -1) {
+          moodData[todayIndex].mood = moodValue;
+          moodData[todayIndex].color = selectedMoodOption.color;
+        }
+        
+        await AsyncStorage.setItem('moodData', JSON.stringify(moodData));
+      }
+
+      // 3. Update shield level
+      await updateShieldLevel();
+
+      // Here you could save the feedback to analytics or storage
+      console.log('Feedback submitted:', {
+        mood: selectedMood,
+        helpfulness: selectedHelpfulness,
+        sessionDuration,
+      });
+    } catch (error) {
+      console.error("Failed to save SOS session data", error);
+    }
     
     navigation.navigate('MainTabs', { screen: 'Home' });
   };

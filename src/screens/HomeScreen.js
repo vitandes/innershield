@@ -20,6 +20,35 @@ const HomeScreen = ({ navigation }) => {
   const [dailyMessage, setDailyMessage] = useState('');
 
   useEffect(() => {
+    const trackActiveDay = async () => {
+      try {
+        const lastActiveDay = await AsyncStorage.getItem('lastActiveDay');
+        const today = new Date().toISOString().split('T')[0];
+
+        if (lastActiveDay !== today) {
+          const storedMetrics = await AsyncStorage.getItem('wellnessMetrics');
+          let metrics = storedMetrics ? JSON.parse(storedMetrics) : {
+            week: { shieldLevel: 0, moodAverage: 0, activeDays: 0, completedExercises: 0, trend: 'stable' },
+            month: { shieldLevel: 0, moodAverage: 0, activeDays: 0, completedExercises: 0, trend: 'stable' },
+            year: { shieldLevel: 0, moodAverage: 0, activeDays: 0, completedExercises: 0, trend: 'stable' },
+          };
+
+          metrics.week.activeDays += 1;
+          metrics.month.activeDays += 1;
+          metrics.year.activeDays += 1;
+
+          await AsyncStorage.setItem('wellnessMetrics', JSON.stringify(metrics));
+          await AsyncStorage.setItem('lastActiveDay', today);
+        }
+      } catch (error) {
+        console.error("Failed to track active day:", error);
+      }
+    };
+
+    trackActiveDay();
+  }, []);
+
+  useEffect(() => {
     const updateDailyMessage = async () => {
       try {
         const lastUpdateString = await AsyncStorage.getItem('lastDailyMessageUpdate');
@@ -84,6 +113,42 @@ const HomeScreen = ({ navigation }) => {
     { id: 2, title: 'Journal writing', completed: false, icon: 'book' },
     { id: 3, title: 'Sleep melodies', completed: false, icon: 'moon' }
   ]);
+
+  // Load daily missions from AsyncStorage on component mount
+  useEffect(() => {
+    const loadDailyMissions = async () => {
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const lastMissionDate = await AsyncStorage.getItem('lastMissionDate');
+        
+        const defaultMissions = [
+          { id: 1, title: 'Breathing exercise', completed: false, icon: 'leaf' },
+          { id: 2, title: 'Journal writing', completed: false, icon: 'book' },
+          { id: 3, title: 'Sleep melodies', completed: false, icon: 'moon' }
+        ];
+        
+        // Si es un nuevo día o no hay fecha guardada, reiniciar misiones
+        if (!lastMissionDate || lastMissionDate !== today) {
+          await AsyncStorage.setItem('dailyMissions', JSON.stringify(defaultMissions));
+          await AsyncStorage.setItem('lastMissionDate', today);
+          setDailyMissions(defaultMissions);
+        } else {
+          // Cargar misiones existentes del mismo día
+          const storedMissions = await AsyncStorage.getItem('dailyMissions');
+          if (storedMissions) {
+            setDailyMissions(JSON.parse(storedMissions));
+          } else {
+            await AsyncStorage.setItem('dailyMissions', JSON.stringify(defaultMissions));
+            setDailyMissions(defaultMissions);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading daily missions:', error);
+      }
+    };
+
+    loadDailyMissions();
+  }, []);
   
   const completedMissions = dailyMissions.filter(mission => mission.completed).length;
   const totalMissions = dailyMissions.length;
@@ -101,14 +166,56 @@ const HomeScreen = ({ navigation }) => {
   };
 
   // Function to toggle mission status and navigate to corresponding screen
-  const toggleMission = (missionId) => {
-    setDailyMissions(prevMissions => 
-      prevMissions.map(mission => 
-        mission.id === missionId 
-          ? { ...mission, completed: !mission.completed }
-          : mission
-      )
+  const toggleMission = async (missionId) => {
+    const updatedMissions = dailyMissions.map(mission => 
+      mission.id === missionId 
+        ? { ...mission, completed: !mission.completed }
+        : mission
     );
+    
+    setDailyMissions(updatedMissions);
+    
+    try {
+      // Save updated missions to AsyncStorage
+      await AsyncStorage.setItem('dailyMissions', JSON.stringify(updatedMissions));
+      
+      // Update mood data colors based on completed missions
+      const completedCount = updatedMissions.filter(mission => mission.completed).length;
+      
+      // Get current mood data
+      const storedMoodData = await AsyncStorage.getItem('moodData');
+      if (storedMoodData) {
+        const moodData = JSON.parse(storedMoodData);
+        
+        // Get current day
+        const today = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const currentDay = dayNames[today];
+        
+        // Update today's mood data with mission completion
+        const updatedMoodData = moodData.map(item => {
+          if (item.day === currentDay) {
+            let color = '#E0E0E0'; // Default color (gris)
+            
+            // Assign color based on completed missions
+            if (completedCount === 3) {
+              color = '#4CAF50'; // Verde para 3 misiones
+            } else if (completedCount === 2) {
+              color = '#FFC107'; // Amarillo para 2 misiones
+            } else if (completedCount === 1 || completedCount === 0) {
+              color = '#F44336'; // Rojo para 0-1 misiones
+            }
+            
+            return { ...item, color, completedMissions: completedCount };
+          }
+          return item;
+        });
+        
+        await AsyncStorage.setItem('moodData', JSON.stringify(updatedMoodData));
+      }
+    } catch (error) {
+      console.error('Error updating missions and mood data:', error);
+    }
     
     // Navigate to corresponding screen when mission is activated
     const mission = dailyMissions.find(m => m.id === missionId);

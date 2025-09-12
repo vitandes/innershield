@@ -11,6 +11,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { updateShieldLevel } from '../utils/statsUtils';
 
 const SleepMelodiesScreen = ({ navigation }) => {
   const { colors } = useTheme();
@@ -83,7 +85,7 @@ const SleepMelodiesScreen = ({ navigation }) => {
     }
   ];
 
-  const handlePlaySound = (sound) => {
+  const handlePlaySound = async (sound) => {
     if (playingSound === sound.id) {
       // Stop current sound
       setPlayingSound(null);
@@ -91,6 +93,23 @@ const SleepMelodiesScreen = ({ navigation }) => {
     } else {
       // Play new sound
       setPlayingSound(sound.id);
+      
+      try {
+        // Registrar el uso de melodías para dormir para el nivel de escudo
+        const storedMetrics = await AsyncStorage.getItem('wellnessMetrics');
+        let metrics = storedMetrics ? JSON.parse(storedMetrics) : {
+          week: { shieldLevel: 0, moodAverage: 0, activeDays: 0, completedExercises: 0, trend: 'stable' },
+          month: { shieldLevel: 0, moodAverage: 0, activeDays: 0, completedExercises: 0, trend: 'stable' },
+          year: { shieldLevel: 0, moodAverage: 0, activeDays: 0, completedExercises: 0, trend: 'stable' },
+        };
+        
+        // Actualizar nivel de escudo
+        await updateShieldLevel();
+        
+      } catch (error) {
+        console.error('Error updating shield level:', error);
+      }
+      
       Alert.alert(
         'Now Playing',
         `${sound.title} is now playing.\n\nDuration: ${sound.duration}\n\nTip: Find a comfortable position and let the sounds guide you to peaceful sleep.`,

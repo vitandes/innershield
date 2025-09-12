@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { updateShieldLevel, updateMoodAverage } from '../utils/statsUtils';
 
 const JournalScreen = ({ navigation }) => {
   const { colors } = useTheme();
@@ -19,13 +21,29 @@ const JournalScreen = ({ navigation }) => {
   const [selectedMood, setSelectedMood] = useState(null);
   const [journalEntries, setJournalEntries] = useState([]);
 
+  // Cargar entradas guardadas al iniciar
+  useEffect(() => {
+    const loadEntries = async () => {
+      try {
+        const storedEntries = await AsyncStorage.getItem('journalEntries');
+        if (storedEntries) {
+          setJournalEntries(JSON.parse(storedEntries));
+        }
+      } catch (error) {
+        console.error('Error loading journal entries:', error);
+      }
+    };
+    
+    loadEntries();
+  }, []);
+
   const moods = [
-    { id: 'happy', emoji: '😊', label: 'Happy', color: '#4CAF50' },
-    { id: 'calm', emoji: '😌', label: 'Calm', color: '#2196F3' },
-    { id: 'anxious', emoji: '😰', label: 'Anxious', color: '#FF9800' },
-    { id: 'sad', emoji: '😢', label: 'Sad', color: '#9C27B0' },
-    { id: 'stressed', emoji: '😤', label: 'Stressed', color: '#F44336' },
-    { id: 'grateful', emoji: '🙏', label: 'Grateful', color: '#E91E63' }
+    { id: 'happy', emoji: '😊', label: 'Happy', color: '#4CAF50', value: 10 },
+    { id: 'calm', emoji: '😌', label: 'Calm', color: '#2196F3', value: 8 },
+    { id: 'anxious', emoji: '😰', label: 'Anxious', color: '#FF9800', value: 4 },
+    { id: 'sad', emoji: '😢', label: 'Sad', color: '#9C27B0', value: 3 },
+    { id: 'stressed', emoji: '😤', label: 'Stressed', color: '#F44336', value: 2 },
+    { id: 'grateful', emoji: '🙏', label: 'Grateful', color: '#E91E63', value: 9 }
   ];
 
   const prompts = [
@@ -37,7 +55,7 @@ const JournalScreen = ({ navigation }) => {
     "How am I feeling right now?"
   ];
 
-  const handleSaveEntry = () => {
+  const handleSaveEntry = async () => {
     if (!currentEntry.trim()) {
       Alert.alert('Empty Entry', 'Please write something before saving.');
       return;
@@ -59,15 +77,57 @@ const JournalScreen = ({ navigation }) => {
       })
     };
 
-    setJournalEntries([newEntry, ...journalEntries]);
+    const updatedEntries = [newEntry, ...journalEntries];
+    setJournalEntries(updatedEntries);
     setCurrentEntry('');
     setSelectedMood(null);
     
-    Alert.alert(
-      'Entry Saved! 📝',
-      'Your journal entry has been saved successfully.',
-      [{ text: 'Great!' }]
-    );
+    try {
+      // Guardar entradas en AsyncStorage
+      await AsyncStorage.setItem('journalEntries', JSON.stringify(updatedEntries));
+      
+      // Actualizar datos de ánimo para el día actual
+      const selectedMoodOption = moods.find(m => m.id === selectedMood);
+      const moodValue = selectedMoodOption ? selectedMoodOption.value : 5;
+      
+      // Obtener día de la semana actual
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const today = days[new Date().getDay()];
+      
+      // Actualizar datos de ánimo para el día actual
+      const storedMoodData = await AsyncStorage.getItem('moodData');
+      let moodData = storedMoodData ? JSON.parse(storedMoodData) : [];
+      
+      // Buscar la entrada de hoy y actualizarla
+      const todayIndex = moodData.findIndex(item => item.day === today);
+      if (todayIndex !== -1) {
+        moodData[todayIndex].mood = moodValue;
+        moodData[todayIndex].color = selectedMoodOption.color;
+      }
+      
+      await AsyncStorage.setItem('moodData', JSON.stringify(moodData));
+      
+      // Actualizar métricas de bienestar
+      const storedMetrics = await AsyncStorage.getItem('wellnessMetrics');
+      let metrics = storedMetrics ? JSON.parse(storedMetrics) : {
+        week: { shieldLevel: 0, moodAverage: 0, activeDays: 0, completedExercises: 0, trend: 'stable' },
+        month: { shieldLevel: 0, moodAverage: 0, activeDays: 0, completedExercises: 0, trend: 'stable' },
+        year: { shieldLevel: 0, moodAverage: 0, activeDays: 0, completedExercises: 0, trend: 'stable' },
+      };
+      
+      // Actualizar nivel de escudo y promedio de ánimo
+      await updateShieldLevel();
+      await updateMoodAverage();
+      
+      Alert.alert(
+        'Entry Saved! 📝',
+        'Your journal entry has been saved successfully.',
+        [{ text: 'Great!' }]
+      );
+    } catch (error) {
+      console.error('Error saving journal entry:', error);
+      Alert.alert('Error', 'Failed to save your journal entry. Please try again.');
+    }
   };
 
   const handlePromptSelect = (prompt) => {

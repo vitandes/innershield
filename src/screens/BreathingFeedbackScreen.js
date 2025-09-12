@@ -11,6 +11,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { updateShieldLevel, updateMoodAverage } from '../utils/statsUtils';
 
 const BreathingFeedbackScreen = ({ navigation, route }) => {
   const [selectedMood, setSelectedMood] = useState(null);
@@ -111,11 +113,11 @@ const BreathingFeedbackScreen = ({ navigation, route }) => {
   }, []);
 
   const moodOptions = [
-    { id: 'much_better', emoji: '😌', label: 'Muy Relajado', color: '#4CAF50' },
-    { id: 'better', emoji: '🙂', label: 'Más Calmado', color: '#8BC34A' },
-    { id: 'same', emoji: '😐', label: 'Igual', color: '#FFC107' },
-    { id: 'worse', emoji: '😔', label: 'Más Ansioso', color: '#FF9800' },
-    { id: 'much_worse', emoji: '😰', label: 'Muy Ansioso', color: '#F44336' },
+    { id: 'much_better', emoji: '😌', label: 'Muy Relajado', color: '#4CAF50', value: 10 },
+    { id: 'better', emoji: '🙂', label: 'Más Calmado', color: '#8BC34A', value: 8 },
+    { id: 'same', emoji: '😐', label: 'Igual', color: '#FFC107', value: 5 },
+    { id: 'worse', emoji: '😔', label: 'Más Ansioso', color: '#FF9800', value: 3 },
+    { id: 'much_worse', emoji: '😰', label: 'Muy Ansioso', color: '#F44336', value: 1 },
   ];
 
   const helpfulnessOptions = [
@@ -132,15 +134,67 @@ const BreathingFeedbackScreen = ({ navigation, route }) => {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  const handleSubmit = () => {
-    // Aquí podrías guardar el feedback en analytics o storage
-    console.log('Feedback de respiración enviado:', {
-      mood: selectedMood,
-      helpfulness: selectedHelpfulness,
-      sessionType,
-      duration,
-      technique,
-    });
+  const handleSubmit = async () => {
+    try {
+      // 1. Update wellness metrics
+      const storedMetrics = await AsyncStorage.getItem('wellnessMetrics');
+      let metrics = storedMetrics ? JSON.parse(storedMetrics) : {
+          week: { shieldLevel: 0, moodAverage: 0, activeDays: 0, completedExercises: 0, trend: 'stable' },
+          month: { shieldLevel: 0, moodAverage: 0, activeDays: 0, completedExercises: 0, trend: 'stable' },
+          year: { shieldLevel: 0, moodAverage: 0, activeDays: 0, completedExercises: 0, trend: 'stable' },
+      };
+
+      metrics.week.completedExercises += 1;
+      metrics.month.completedExercises += 1;
+      metrics.year.completedExercises += 1;
+
+      await AsyncStorage.setItem('wellnessMetrics', JSON.stringify(metrics));
+
+      // 2. Update mood data if mood was selected
+      if (selectedMood) {
+        const selectedMoodOption = moodOptions.find(option => option.id === selectedMood);
+        const moodValue = selectedMoodOption ? selectedMoodOption.value : 5;
+        
+        // Get current day of week
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const today = days[new Date().getDay()];
+        
+        // Update mood data for the current day
+        const storedMoodData = await AsyncStorage.getItem('moodData');
+        let moodData = storedMoodData ? JSON.parse(storedMoodData) : [];
+        
+        // Find today's entry and update it
+        const todayIndex = moodData.findIndex(item => item.day === today);
+        if (todayIndex !== -1) {
+          moodData[todayIndex].mood = moodValue;
+          moodData[todayIndex].color = selectedMoodOption.color;
+        }
+        
+        await AsyncStorage.setItem('moodData', JSON.stringify(moodData));
+      }
+
+      // 3. Update achievements
+      const storedAchievements = await AsyncStorage.getItem('achievements');
+      let achievements = storedAchievements ? JSON.parse(storedAchievements) : [];
+
+      const breathingMaster = achievements.find(a => a.id === 2);
+      if (breathingMaster && !breathingMaster.earned) {
+          breathingMaster.progress = Math.min(100, breathingMaster.progress + 2); // Each exercise is 2% of 50
+          if (breathingMaster.progress >= 100) {
+              breathingMaster.earned = true;
+              breathingMaster.date = new Date().toISOString().split('T')[0];
+          }
+      }
+
+      await AsyncStorage.setItem('achievements', JSON.stringify(achievements));
+
+      // 4. Update shield level and mood average
+      await updateShieldLevel();
+      await updateMoodAverage();
+
+    } catch (error) {
+        console.error("Failed to save exercise data", error);
+    }
     
     navigation.navigate('MainTabs', { screen: 'Home' });
   };

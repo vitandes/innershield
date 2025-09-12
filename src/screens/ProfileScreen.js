@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Switch, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { dailyMessages } from '../data/dailyMessages';
 
 Notifications.setNotificationHandler({
@@ -37,11 +38,33 @@ const ProfileScreen = ({ navigation }) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   useEffect(() => {
-    Notifications.requestPermissionsAsync();
+    const initializeNotifications = async () => {
+      await Notifications.requestPermissionsAsync();
+      
+      // Cargar el estado de las notificaciones desde AsyncStorage
+      try {
+        const savedNotificationState = await AsyncStorage.getItem('notificationsEnabled');
+        if (savedNotificationState !== null) {
+          setNotificationsEnabled(JSON.parse(savedNotificationState));
+        }
+      } catch (error) {
+        console.error('Error loading notification settings:', error);
+      }
+    };
+    
+    initializeNotifications();
   }, []);
 
   const handleNotificationsToggle = async (value) => {
     setNotificationsEnabled(value);
+    
+    // Guardar el estado en AsyncStorage
+    try {
+      await AsyncStorage.setItem('notificationsEnabled', JSON.stringify(value));
+    } catch (error) {
+      console.error('Error saving notification settings:', error);
+    }
+    
     if (value) {
       await scheduleDailyNotification();
       Alert.alert('Notifications Enabled', 'You will receive a daily message at 8:00 AM.');
