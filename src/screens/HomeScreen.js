@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
 import { dailyMessages } from '../data/dailyMessages';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -115,40 +116,42 @@ const HomeScreen = ({ navigation }) => {
   ]);
 
   // Load daily missions from AsyncStorage on component mount
-  useEffect(() => {
-    const loadDailyMissions = async () => {
-      try {
-        const today = new Date().toISOString().split('T')[0];
-        const lastMissionDate = await AsyncStorage.getItem('lastMissionDate');
-        
-        const defaultMissions = [
-          { id: 1, title: 'Breathing exercise', completed: false, icon: 'leaf' },
-          { id: 2, title: 'Journal writing', completed: false, icon: 'book' },
-          { id: 3, title: 'Sleep melodies', completed: false, icon: 'moon' }
-        ];
-        
-        // Si es un nuevo día o no hay fecha guardada, reiniciar misiones
-        if (!lastMissionDate || lastMissionDate !== today) {
-          await AsyncStorage.setItem('dailyMissions', JSON.stringify(defaultMissions));
-          await AsyncStorage.setItem('lastMissionDate', today);
-          setDailyMissions(defaultMissions);
-        } else {
-          // Cargar misiones existentes del mismo día
-          const storedMissions = await AsyncStorage.getItem('dailyMissions');
-          if (storedMissions) {
-            setDailyMissions(JSON.parse(storedMissions));
-          } else {
+  useFocusEffect(
+    useCallback(() => {
+      const loadDailyMissions = async () => {
+        try {
+          const today = new Date().toISOString().split('T')[0];
+          const lastMissionDate = await AsyncStorage.getItem('lastMissionDate');
+          
+          const defaultMissions = [
+            { id: 1, title: 'Breathing exercise', completed: false, icon: 'leaf' },
+            { id: 2, title: 'Journal writing', completed: false, icon: 'book' },
+            { id: 3, title: 'Sleep melodies', completed: false, icon: 'moon' }
+          ];
+          
+          // Si es un nuevo día o no hay fecha guardada, reiniciar misiones
+          if (!lastMissionDate || lastMissionDate !== today) {
             await AsyncStorage.setItem('dailyMissions', JSON.stringify(defaultMissions));
+            await AsyncStorage.setItem('lastMissionDate', today);
             setDailyMissions(defaultMissions);
+          } else {
+            // Cargar misiones existentes del mismo día
+            const storedMissions = await AsyncStorage.getItem('dailyMissions');
+            if (storedMissions) {
+              setDailyMissions(JSON.parse(storedMissions));
+            } else {
+              await AsyncStorage.setItem('dailyMissions', JSON.stringify(defaultMissions));
+              setDailyMissions(defaultMissions);
+            }
           }
+        } catch (error) {
+          console.error('Error loading daily missions:', error);
         }
-      } catch (error) {
-        console.error('Error loading daily missions:', error);
-      }
-    };
+      };
 
-    loadDailyMissions();
-  }, []);
+      loadDailyMissions();
+    }, [])
+  );
   
   const completedMissions = dailyMissions.filter(mission => mission.completed).length;
   const totalMissions = dailyMissions.length;

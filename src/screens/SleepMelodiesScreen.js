@@ -181,9 +181,9 @@ const SleepMelodiesScreen = ({ navigation }) => {
           <View style={styles.tipCard}>
             <Ionicons name="bulb-outline" size={24} color="#FF9800" />
             <Text style={styles.tipText}>
-              • Use headphones for the best experience\n
-              • Set a comfortable volume level\n
-              • Create a dark, cool environment\n
+              • Use headphones for the best experience{"\n"}
+              • Set a comfortable volume level{"\n"}
+              • Create a dark, cool environment{"\n"}
               • Try different sounds to find your favorite
             </Text>
           </View>

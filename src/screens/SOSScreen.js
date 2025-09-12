@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -31,8 +31,11 @@ const SOSScreen = ({ navigation }) => {
   const [lastPlayedSound, setLastPlayedSound] = useState(null);
   const preparationMessageCountRef = useRef(0);
   const preparationPhaseHasRun = useRef(false);
-  
-  // Referencias para intervalos y timers
+  const [isBreathingPaused, setIsBreathingPaused] = useState(false);
+  const [isWelcomeMessagePlaying, setIsWelcomeMessagePlaying] = useState(false);
+
+
+  // Referencias para intervalos y timeouts
   const messageIntervalRef = useRef(null);
   const mainIntervalRef = useRef(null);
   const phaseTimeoutRef = useRef(null);
@@ -40,11 +43,16 @@ const SOSScreen = ({ navigation }) => {
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const welcomeAnim = useRef(new Animated.Value(0)).current;
   const floatAnim = useRef(new Animated.Value(0)).current;
-  
+  const isMounted = useRef(true);
+
+
+  // Efecto para resetear el estado cuando la pantalla vuelve a estar en foco
   useFocusEffect(
-    React.useCallback(() => {
-      // This effect runs when the screen comes into focus.
-      // It resets the state of the screen to its initial values.
+    useCallback(() => {
+      if (isWelcomeMessagePlaying) {
+        return;
+      }
+      // Restablecer el estado a los valores iniciales
       setSessionPhase(0);
       setBreathingActive(false);
       setShowWelcome(true);
@@ -71,14 +79,16 @@ const SOSScreen = ({ navigation }) => {
           backgroundMusic.unloadAsync().catch(() => {});
         }
       };
-    }, [])
+    }, [isWelcomeMessagePlaying])
   );
 
   // Removed panic mode useEffect - now using direct mindfulness approach
 
   // Cleanup adicional cuando el componente se desmonta
   useEffect(() => {
+    isMounted.current = true;
     return () => {
+      isMounted.current = false;
       // Cleanup final cuando el componente se desmonta completamente
       if (sound) {
         sound.stopAsync().catch(() => {});
@@ -89,56 +99,57 @@ const SOSScreen = ({ navigation }) => {
 
   // Empathetic welcome animation
   useEffect(() => {
-    if (showWelcome) {
-      // Smooth entrance animation
-      Animated.sequence([
-        Animated.timing(welcomeAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.delay(3000),
-        Animated.timing(welcomeAnim, {
-          toValue: 0,
-          duration: 800,
-          useNativeDriver: true,
-        })
-      ]).start(async () => {
-        setShowWelcome(false);
-        setBreathingActive(true);
-        
-        // Iniciar música de fondo cuando showWelcome cambia a false
-        try {
-          // Usar Moonlit Drift para sesiones de mindfulness por defecto
-          const { sound: bgMusic } = await Audio.Sound.createAsync(
-            require('../../assets/songs/Moonlit Drift.mp3'),
-            {
-              shouldPlay: true,
-              isLooping: true,
-              volume: 0.12, // Volumen suave para mindfulness
-            }
-          );
-          setBackgroundMusic(bgMusic);
-        } catch (error) {
-          console.log('Error loading background music:', error);
-        }
-      });
-      
-      // Continuous floating animation
+    const playWelcomeSequence = async () => {
+      // Fade in welcome message
+      Animated.timing(welcomeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }).start();
+
+      // Floating animation
       Animated.loop(
         Animated.sequence([
           Animated.timing(floatAnim, {
             toValue: 1,
-            duration: 2000,
+            duration: 1500,
             useNativeDriver: true,
           }),
           Animated.timing(floatAnim, {
             toValue: 0,
-            duration: 2000,
+            duration: 1500,
             useNativeDriver: true,
-          })
+          }),
         ])
       ).start();
+
+      // Cargar y reproducir música de fondo
+      loadAndPlaySound('softPiano', true, setBackgroundMusic);
+
+      // Reproducir el primer mensaje de bienvenida
+      const welcomeMessage = mindfulnessMessages.welcome[0];
+      if (welcomeMessage?.sound) {
+        setIsWelcomeMessagePlaying(true);
+        await playMessageSound(welcomeMessage.sound);
+        if (isMounted.current) {
+          setIsWelcomeMessagePlaying(false);
+        }
+      }
+
+      // Iniciar la sesión de mindfulness después de una pausa
+      const sessionTimeout = setTimeout(() => {
+        if (isMounted.current) {
+          startMindfulnessSession();
+        }
+      }, 7000); // Duración del mensaje de bienvenida
+
+      return () => {
+        clearTimeout(sessionTimeout);
+      };
+    };
+
+    if (showWelcome) {
+      playWelcomeSequence();
     }
   }, [showWelcome]);
 
@@ -195,19 +206,18 @@ const SOSScreen = ({ navigation }) => {
 
     if (breathingActive && !showWelcome && !isPaused && sessionPhase === 0 && !preparationPhaseHasRun.current) {
       preparationPhaseHasRun.current = true;
-      // 1. Reproducir el primer mensaje inmediatamente
-      setCurrentMessage(prev => getRandomMessage(mindfulnessMessages.preparation, prev));
-      animateMessageChange();
-      setLastPlayedSound(null);
+      
+      // El primer mensaje se establece en startMindfulnessSession.
+      // Aquí solo programamos los siguientes eventos de la fase de preparación.
 
-      // 2. Después de 10 segundos, reproducir el segundo mensaje
+      // 1. Después de 10 segundos, reproducir el segundo mensaje
       secondMessageTimer = setTimeout(() => {
         setCurrentMessage(prev => getRandomMessage(mindfulnessMessages.preparation, prev));
         animateMessageChange();
         setLastPlayedSound(null);
       }, 10000);
 
-      // 3. Después de 20 segundos, cambiar a la fase de respiración
+      // 2. Después de 20 segundos, cambiar a la fase de respiración
       phaseChangeTimer = setTimeout(() => {
         setSessionPhase(1);
         const randomStartIndex = Math.floor(Math.random() * mindfulnessMessages.breathing.length);
@@ -338,7 +348,9 @@ const SOSScreen = ({ navigation }) => {
 
   // Función para iniciar directamente la sesión de mindfulness
   const startMindfulnessSession = async () => {
-    setShowWelcome(true);
+    setShowWelcome(false);
+    setBreathingActive(true);
+    setIsPaused(false);
     setSessionPhase(0);
     // Start with a random preparation message
     const randomPrepIndex = Math.floor(Math.random() * mindfulnessMessages.preparation.length);
@@ -347,13 +359,12 @@ const SOSScreen = ({ navigation }) => {
     setBreathingPhase('preparation');
     setLastPlayedSound(null); // Reset to allow session sounds from start
     setPreparationMessageCount(0); // Reset preparation message counter
-    
-    // La música se iniciará cuando showWelcome cambie a false
   };
 
   // Auto-iniciar la sesión al cargar la pantalla
   useEffect(() => {
-    startMindfulnessSession();
+    // La sesión ahora se inicia después de la secuencia de bienvenida
+    // startMindfulnessSession(); 
   }, []);
 
   // Function to play message sound

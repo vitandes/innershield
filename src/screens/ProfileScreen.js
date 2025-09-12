@@ -13,21 +13,39 @@ Notifications.setNotificationHandler({
   }),
 });
 
-const scheduleDailyNotification = async () => {
-  const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
-  const message = dailyMessages[dayOfYear % dailyMessages.length];
-
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: "Message of the Day",
-      body: message,
-    },
-    trigger: {
-      hour: 8,
-      minute: 0,
-      repeats: true,
-    },
-  });
+// Función para programar la notificación del día siguiente
+const scheduleNextDayNotification = async () => {
+  try {
+    // Verificar si estamos en una plataforma que soporta notificaciones
+    if (typeof window !== 'undefined') {
+      // Estamos en web, las notificaciones no están disponibles
+      console.log('Notifications not available on web platform');
+      return;
+    }
+    
+    // Cancelar notificaciones existentes
+    await Notifications.cancelAllScheduledNotificationsAsync();
+    
+    // Obtener el mensaje para mañana
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(8, 0, 0, 0);
+    
+    // Programar notificación para mañana a las 8 AM
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "Message of the Day",
+        body: "Your daily message is ready! Open the app to see it.",
+      },
+      trigger: {
+        date: tomorrow,
+      },
+    });
+    
+    console.log('Next day notification scheduled for:', tomorrow);
+  } catch (error) {
+    console.error('Error scheduling next day notification:', error);
+  }
 };
 
 const cancelAllNotifications = async () => {
@@ -45,7 +63,13 @@ const ProfileScreen = ({ navigation }) => {
       try {
         const savedNotificationState = await AsyncStorage.getItem('notificationsEnabled');
         if (savedNotificationState !== null) {
-          setNotificationsEnabled(JSON.parse(savedNotificationState));
+          const isEnabled = JSON.parse(savedNotificationState);
+          setNotificationsEnabled(isEnabled);
+          
+          // Si las notificaciones están habilitadas, asegurar que hay una programada
+          if (isEnabled) {
+            await scheduleNextDayNotification();
+          }
         }
       } catch (error) {
         console.error('Error loading notification settings:', error);
@@ -66,7 +90,7 @@ const ProfileScreen = ({ navigation }) => {
     }
     
     if (value) {
-      await scheduleDailyNotification();
+      await scheduleNextDayNotification();
       Alert.alert('Notifications Enabled', 'You will receive a daily message at 8:00 AM.');
     } else {
       await cancelAllNotifications();
