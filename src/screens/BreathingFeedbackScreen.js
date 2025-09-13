@@ -196,7 +196,7 @@ const BreathingFeedbackScreen = ({ navigation, route }) => {
         console.error("Failed to save exercise data", error);
     }
     
-    navigation.navigate('MainTabs', { screen: 'Home' });
+    navigation.navigate('Main', { screen: 'Home' });
   };
 
   const renderStars = (count) => {
