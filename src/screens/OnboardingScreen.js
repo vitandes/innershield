@@ -4,12 +4,12 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   Dimensions,
   Image,
   Animated,
   PanResponder,
   Easing,
+  StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -85,79 +85,79 @@ const OnboardingScreen = ({ navigation }) => {
   const questions = [
     {
       id: 0,
-      question: '¿Cuál opción describe mejor tu nivel de estrés?',
-      background: require('../../assets/onboarding/fondo1.png'),
+      question: 'Which option best describes your stress level?',
+      background: require('../../assets/onboarding/fondo1.webp'),
       options: [
-        { id: 'crisis', text: 'Estoy en crisis', emoji: '😰', value: 4 },
-        { id: 'problems', text: 'Estoy teniendo problemas', emoji: '😟', value: 3 },
-        { id: 'surviving', text: 'Estoy sobreviviendo', emoji: '😐', value: 2 },
-        { id: 'thriving', text: 'Estoy saliendo adelante', emoji: '🙂', value: 1 }
+        { id: 'crisis', text: 'I am in crisis', emoji: '😰', value: 4 },
+        { id: 'problems', text: 'I am having problems', emoji: '😟', value: 3 },
+        { id: 'surviving', text: 'I am surviving', emoji: '😐', value: 2 },
+        { id: 'thriving', text: 'I am thriving', emoji: '🙂', value: 1 }
       ]
     },
     {
       id: 1,
-      question: '¿Cuál es tu género?',
-      background: require('../../assets/onboarding/fondo2.png'),
+      question: 'What is your gender?',
+      background: require('../../assets/onboarding/fondo2.webp'),
       options: [
-        { id: 'female', text: 'Femenino', emoji: '👩', value: 'female' },
-        { id: 'male', text: 'Masculino', emoji: '👨', value: 'male' },
-        { id: 'non-binary', text: 'No binario', emoji: '🧑', value: 'non-binary' },
-        { id: 'other', text: 'Otro', emoji: '✨', value: 'other' }
+        { id: 'female', text: 'Female', emoji: '👩', value: 'female' },
+        { id: 'male', text: 'Male', emoji: '👨', value: 'male' },
+        { id: 'non-binary', text: 'Non-binary', emoji: '🧑', value: 'non-binary' },
+        { id: 'other', text: 'Other', emoji: '✨', value: 'other' }
       ]
     },
     {
       id: 2,
-      question: '¿Con qué frecuencia te sientes abrumado/a?',
-      background: require('../../assets/onboarding/fondo3.png'),
+      question: 'How often do you feel overwhelmed?',
+      background: require('../../assets/onboarding/fondo3.webp'),
       options: [
-        { id: 'always', text: 'Siempre o casi siempre', emoji: '😵', value: 4 },
-        { id: 'often', text: 'Frecuentemente', emoji: '😓', value: 3 },
-        { id: 'sometimes', text: 'A veces', emoji: '😕', value: 2 },
-        { id: 'rarely', text: 'Rara vez', emoji: '😌', value: 1 }
+        { id: 'always', text: 'Always or almost always', emoji: '😵', value: 4 },
+        { id: 'often', text: 'Frequently', emoji: '😓', value: 3 },
+        { id: 'sometimes', text: 'Sometimes', emoji: '😕', value: 2 },
+        { id: 'rarely', text: 'Rarely', emoji: '😌', value: 1 }
       ]
     },
     {
       id: 3,
-      question: '¿Cómo calificarías tu calidad de sueño?',
-      background: require('../../assets/onboarding/fondo4.png'),
+      question: 'How would you rate your sleep quality?',
+      background: require('../../assets/onboarding/fondo4.webp'),
       options: [
-        { id: 'terrible', text: 'Terrible, no duermo bien', emoji: '😴', value: 4 },
-        { id: 'poor', text: 'Mala, me despierto cansado/a', emoji: '😪', value: 3 },
-        { id: 'fair', text: 'Regular, podría mejorar', emoji: '😐', value: 2 },
-        { id: 'good', text: 'Buena, duermo bien', emoji: '😊', value: 1 }
+        { id: 'terrible', text: 'Terrible, I don\'t sleep well', emoji: '😴', value: 4 },
+        { id: 'poor', text: 'Poor, I wake up tired', emoji: '😪', value: 3 },
+        { id: 'fair', text: 'Fair, could improve', emoji: '😐', value: 2 },
+        { id: 'good', text: 'Good, I sleep well', emoji: '😊', value: 1 }
       ]
     },
     {
       id: 4,
-      question: '¿Qué tan difícil te resulta manejar tus emociones?',
-      background: require('../../assets/onboarding/fondo5.png'),
+      question: 'How difficult is it for you to manage your emotions?',
+      background: require('../../assets/onboarding/fondo5.webp'),
       options: [
-        { id: 'very-hard', text: 'Muy difícil, me siento perdido/a', emoji: '😭', value: 4 },
-        { id: 'hard', text: 'Difícil, necesito ayuda', emoji: '😢', value: 3 },
-        { id: 'manageable', text: 'Manejable con esfuerzo', emoji: '😔', value: 2 },
-        { id: 'easy', text: 'Fácil, tengo control', emoji: '😊', value: 1 }
+        { id: 'very-hard', text: 'Very difficult, I feel lost', emoji: '😭', value: 4 },
+        { id: 'hard', text: 'Difficult, I need help', emoji: '😢', value: 3 },
+        { id: 'manageable', text: 'Manageable with effort', emoji: '😔', value: 2 },
+        { id: 'easy', text: 'Easy, I have control', emoji: '😊', value: 1 }
       ]
     },
     {
       id: 5,
-      question: '¿Con qué frecuencia practicas autocuidado?',
-      background: require('../../assets/onboarding/fondo6.png'),
+      question: 'How often do you practice self-care?',
+      background: require('../../assets/onboarding/fondo6.webp'),
       options: [
-        { id: 'never', text: 'Nunca, no tengo tiempo', emoji: '😞', value: 4 },
-        { id: 'rarely', text: 'Rara vez, me olvido', emoji: '😕', value: 3 },
-        { id: 'sometimes', text: 'A veces, cuando puedo', emoji: '🙂', value: 2 },
-        { id: 'regularly', text: 'Regularmente, es prioritario', emoji: '😌', value: 1 }
+        { id: 'never', text: 'Never, I don\'t have time', emoji: '😞', value: 4 },
+        { id: 'rarely', text: 'Rarely, I forget', emoji: '😕', value: 3 },
+        { id: 'sometimes', text: 'Sometimes, when I can', emoji: '🙂', value: 2 },
+        { id: 'regularly', text: 'Regularly, it\'s a priority', emoji: '😌', value: 1 }
       ]
     },
     {
       id: 6,
-      question: '¿Qué te motivó a buscar una app de bienestar?',
-      background: require('../../assets/onboarding/fondo7.png'),
+      question: 'What motivated you to look for a wellness app?',
+      background: require('../../assets/onboarding/fondo7.webp'),
       options: [
-        { id: 'crisis', text: 'Estoy en crisis y necesito ayuda urgente', emoji: '🆘', value: 4 },
-        { id: 'struggling', text: 'Estoy luchando y busco apoyo', emoji: '💪', value: 3 },
-        { id: 'improve', text: 'Quiero mejorar mi bienestar', emoji: '🌱', value: 2 },
-        { id: 'maintain', text: 'Quiero mantener mi salud mental', emoji: '✨', value: 1 }
+        { id: 'crisis', text: 'I am in crisis and need urgent help', emoji: '🆘', value: 4 },
+        { id: 'struggling', text: 'I am struggling and seeking support', emoji: '💪', value: 3 },
+        { id: 'improve', text: 'I want to improve my wellbeing', emoji: '🌱', value: 2 },
+        { id: 'maintain', text: 'I want to maintain my mental health', emoji: '✨', value: 1 }
       ]
     }
   ];
@@ -261,8 +261,9 @@ const OnboardingScreen = ({ navigation }) => {
   if (!imagesLoaded) {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
+        <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent={true} />
         <View style={styles.loadingContent}>
-          <Text style={styles.loadingText}>Preparando experiencia...</Text>
+          <Text style={styles.loadingText}>Preparing experience...</Text>
           <View style={styles.loadingBar}>
             <View style={styles.loadingProgress} />
           </View>
@@ -273,6 +274,7 @@ const OnboardingScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
       {/* Banner Superior con Imagen de Fondo */}
       <View style={styles.bannerContainer}>
         {/* Imagen anterior para crossfade */}
@@ -316,7 +318,7 @@ const OnboardingScreen = ({ navigation }) => {
         {/* Bear Character en el banner */}
         <View style={styles.bearContainer}>
           <Image 
-            source={require('../../assets/onboarding/oso.png')} 
+            source={require('../../assets/onboarding/oso.webp')} 
             style={styles.bearImage}
             resizeMode="contain"
           />
@@ -390,7 +392,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    paddingTop: 10,
+    paddingTop: StatusBar.currentHeight || 44,
     paddingHorizontal: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',

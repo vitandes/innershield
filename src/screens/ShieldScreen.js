@@ -5,9 +5,9 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   Modal,
   Alert,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -125,7 +125,8 @@ const ShieldScreen = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent={true} />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.headerSection}>
@@ -216,7 +217,7 @@ const ShieldScreen = () => {
       </ScrollView>
       
       <VulnerabilityScanner />
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -230,6 +231,7 @@ const styles = StyleSheet.create({
   },
   headerSection: {
     marginBottom: 30,
+    paddingTop: StatusBar.currentHeight || 44,
   },
   headerTitle: {
     fontSize: 28,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Switch, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, TextInput, Image, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -54,13 +54,22 @@ const cancelAllNotifications = async () => {
 
 const ProfileScreen = ({ navigation }) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [userName, setUserName] = useState('Usuario');
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [tempName, setTempName] = useState('');
 
   useEffect(() => {
-    const initializeNotifications = async () => {
+    const initializeProfile = async () => {
       await Notifications.requestPermissionsAsync();
       
-      // Cargar el estado de las notificaciones desde AsyncStorage
       try {
+        // Cargar el nombre del usuario
+        const savedUserName = await AsyncStorage.getItem('userName');
+        if (savedUserName !== null) {
+          setUserName(savedUserName);
+        }
+        
+        // Cargar el estado de las notificaciones desde AsyncStorage
         const savedNotificationState = await AsyncStorage.getItem('notificationsEnabled');
         if (savedNotificationState !== null) {
           const isEnabled = JSON.parse(savedNotificationState);
@@ -72,12 +81,39 @@ const ProfileScreen = ({ navigation }) => {
           }
         }
       } catch (error) {
-        console.error('Error loading notification settings:', error);
+        console.error('Error loading profile settings:', error);
       }
     };
     
-    initializeNotifications();
+    initializeProfile();
   }, []);
+
+  const handleEditName = () => {
+    setTempName(userName);
+    setIsEditingName(true);
+  };
+
+  const handleSaveName = async () => {
+    if (tempName.trim().length === 0) {
+      Alert.alert('Error', 'El nombre no puede estar vacío');
+      return;
+    }
+
+    try {
+      await AsyncStorage.setItem('userName', tempName.trim());
+      setUserName(tempName.trim());
+      setIsEditingName(false);
+      Alert.alert('Éxito', 'Nombre actualizado correctamente');
+    } catch (error) {
+      console.error('Error saving user name:', error);
+      Alert.alert('Error', 'No se pudo guardar el nombre');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingName(false);
+    setTempName('');
+  };
 
   const handleNotificationsToggle = async (value) => {
     setNotificationsEnabled(value);
@@ -113,7 +149,8 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent={true} />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="black" />
@@ -122,8 +159,38 @@ const ProfileScreen = ({ navigation }) => {
       </View>
       <View style={styles.content}>
         <View style={styles.profileInfo}>
-          <Ionicons name="person-circle-outline" size={80} color="#ccc" />
-          <Text style={styles.profileName}>User Name</Text>
+          <Image 
+            source={require('../../assets/icono-profile.webp')} 
+            style={styles.profileIcon}
+            resizeMode="contain"
+          />
+          {isEditingName ? (
+            <View style={styles.editNameContainer}>
+              <TextInput
+                style={styles.nameInput}
+                value={tempName}
+                onChangeText={setTempName}
+                placeholder="Ingresa tu nombre"
+                autoFocus={true}
+                maxLength={30}
+              />
+              <View style={styles.editButtons}>
+                <TouchableOpacity style={styles.saveButton} onPress={handleSaveName}>
+                  <Ionicons name="checkmark" size={20} color="white" />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.cancelButton} onPress={handleCancelEdit}>
+                  <Ionicons name="close" size={20} color="white" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.nameContainer}>
+              <Text style={styles.profileName}>{userName}</Text>
+              <TouchableOpacity style={styles.editButton} onPress={handleEditName}>
+                <Ionicons name="pencil" size={16} color="#667eea" />
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         <View style={styles.menu}>
@@ -146,7 +213,7 @@ const ProfileScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -160,6 +227,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    paddingTop: StatusBar.currentHeight || 44,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
@@ -176,10 +244,52 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 40,
   },
+  profileIcon: {
+    width: 80,
+    height: 80,
+    marginBottom: 15,
+  },
+  nameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   profileName: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginTop: 10,
+    marginRight: 10,
+  },
+  editButton: {
+    padding: 5,
+  },
+  editNameContainer: {
+    alignItems: 'center',
+    width: '100%',
+  },
+  nameInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    fontSize: 18,
+    textAlign: 'center',
+    marginBottom: 15,
+    width: '80%',
+  },
+  editButtons: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  saveButton: {
+    backgroundColor: '#4CAF50',
+    borderRadius: 20,
+    padding: 8,
+  },
+  cancelButton: {
+    backgroundColor: '#f44336',
+    borderRadius: 20,
+    padding: 8,
   },
   menu: {
     marginTop: 20,
