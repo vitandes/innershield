@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Image,
   Animated,
   PanResponder,
+  Easing,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,22 +19,67 @@ const { width, height } = Dimensions.get('window');
 
 const OnboardingScreen = ({ navigation }) => {
   const [questionIndex, setQuestionIndex] = useState({ current: 0, previous: 0 });
-  const [direction, setDirection] = useState(1);
+  const [imagesLoaded, setImagesLoaded] = useState(false);
   const [answers, setAnswers] = useState({});
   const slideAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
-  const backgroundScrollAnim = useRef(new Animated.Value(0)).current;
+  const backgroundFadeAnim = useRef(new Animated.Value(1)).current;
+  const previousImageOpacity = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    if (questionIndex.current !== questionIndex.previous) {
-      backgroundScrollAnim.setValue(0);
-      Animated.timing(backgroundScrollAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }).start();
+  // Precargar todas las imágenes al inicio
+  useLayoutEffect(() => {
+    const preloadImages = async () => {
+      const imagePromises = questions.map((question) => {
+        return new Promise((resolve, reject) => {
+          const img = Image.resolveAssetSource(question.background);
+          if (img) {
+            // Simular carga de imagen
+            setTimeout(() => resolve(), 100);
+          } else {
+            reject();
+          }
+        });
+      });
+      
+      try {
+        await Promise.all(imagePromises);
+        setImagesLoaded(true);
+      } catch (error) {
+        console.log('Error precargando imágenes:', error);
+        setImagesLoaded(true); // Continuar aunque haya errores
+      }
+    };
+    
+    preloadImages();
+  }, []);
+
+  useLayoutEffect(() => {
+    if (questionIndex.current !== questionIndex.previous && imagesLoaded) {
+      // Mostrar imagen anterior brevemente para crossfade
+      previousImageOpacity.setValue(1);
+      backgroundFadeAnim.setValue(0);
+      
+      // Animación de crossfade: imagen anterior se desvanece mientras nueva aparece
+      Animated.parallel([
+        Animated.timing(previousImageOpacity, {
+          toValue: 0,
+          duration: 600,
+          easing: Easing.bezier(0.25, 0.46, 0.45, 0.94),
+          useNativeDriver: true,
+        }),
+        Animated.timing(backgroundFadeAnim, {
+          toValue: 1,
+          duration: 800,
+          easing: Easing.bezier(0.25, 0.46, 0.45, 0.94), // Easing suave y natural
+          useNativeDriver: true,
+        })
+      ]).start(() => {
+        // Reset previous image opacity after animation
+        previousImageOpacity.setValue(0);
+      });
     }
-  }, [questionIndex]);
+  }, [questionIndex.current, imagesLoaded]);
+
 
   // Preguntas estratégicas para identificar problemas de bienestar mental
   const questions = [
@@ -142,7 +188,7 @@ const OnboardingScreen = ({ navigation }) => {
       useNativeDriver: true,
     }).start(() => {
       if (questionIndex.current < questions.length - 1) {
-        setDirection(1);
+
         setQuestionIndex(prev => ({ current: prev.current + 1, previous: prev.current }));
       }
       Animated.timing(fadeAnim, {
@@ -160,7 +206,7 @@ const OnboardingScreen = ({ navigation }) => {
       useNativeDriver: true,
     }).start(() => {
       if (questionIndex.current > 0) {
-        setDirection(-1);
+
         setQuestionIndex(prev => ({ current: prev.current - 1, previous: prev.current }));
       }
       Animated.timing(fadeAnim, {
@@ -209,49 +255,48 @@ const OnboardingScreen = ({ navigation }) => {
   };
 
   const currentQuestionData = questions[questionIndex.current];
-  const previousQuestionData = questions[questionIndex.previous];
   const progress = (questionIndex.current / (questions.length - 1)) * 100;
+
+  // Mostrar indicador de carga mientras se precargan las imágenes
+  if (!imagesLoaded) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <View style={styles.loadingContent}>
+          <Text style={styles.loadingText}>Preparando experiencia...</Text>
+          <View style={styles.loadingBar}>
+            <View style={styles.loadingProgress} />
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       {/* Banner Superior con Imagen de Fondo */}
       <View style={styles.bannerContainer}>
-        {/* Fondo actual, se desliza hacia adentro */}
+        {/* Imagen anterior para crossfade */}
+        {questionIndex.previous !== questionIndex.current && questions[questionIndex.previous] && (
+          <Animated.Image
+            source={questions[questionIndex.previous].background}
+            style={[
+              styles.bannerImage,
+              styles.previousBackgroundImage,
+              {
+                opacity: previousImageOpacity,
+              },
+            ]}
+            resizeMode="cover"
+          />
+        )}
+        
+        {/* Imagen actual */}
         <Animated.Image
           source={currentQuestionData.background}
           style={[
             styles.bannerImage,
-            styles.nextBackgroundImage,
             {
-              transform: [
-                {
-                  translateX: backgroundScrollAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [width * direction, 0],
-                    extrapolate: 'clamp',
-                  }),
-                },
-              ],
-            },
-          ]}
-          resizeMode="cover"
-        />
-        
-        {/* Fondo anterior, se desliza hacia afuera */}
-        <Animated.Image
-          source={previousQuestionData.background}
-          style={[
-            styles.bannerImage,
-            {
-              transform: [
-                {
-                  translateX: backgroundScrollAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, -width * direction],
-                    extrapolate: 'clamp',
-                  }),
-                },
-              ],
+              opacity: backgroundFadeAnim,
             },
           ]}
           resizeMode="cover"
@@ -326,6 +371,14 @@ const styles = StyleSheet.create({
   bannerImage: {
     width: '100%',
     height: '100%',
+  },
+  previousBackgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    zIndex: 1,
   },
   nextBackgroundImage: {
     position: 'absolute',
@@ -471,6 +524,35 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     flex: 1,
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+  },
+  loadingContent: {
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  loadingText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 30,
+    textAlign: 'center',
+  },
+  loadingBar: {
+    width: 200,
+    height: 4,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  loadingProgress: {
+    width: '70%',
+    height: '100%',
+    backgroundColor: '#4CAF50',
+    borderRadius: 2,
   },
 });
 
