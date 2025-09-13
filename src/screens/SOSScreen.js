@@ -33,6 +33,7 @@ const SOSScreen = ({ navigation }) => {
   const preparationPhaseHasRun = useRef(false);
   const [isBreathingPaused, setIsBreathingPaused] = useState(false);
   const [isWelcomeMessagePlaying, setIsWelcomeMessagePlaying] = useState(false);
+  const [currentMusicIndex, setCurrentMusicIndex] = useState(0);
 
 
   // Referencias para intervalos y timeouts
@@ -97,6 +98,15 @@ const SOSScreen = ({ navigation }) => {
     };
   }, []);
 
+  // Efecto para música aleatoria
+  useEffect(() => {
+    if (breathingActive && !showWelcome) {
+      // Seleccionar una canción aleatoria al iniciar la sesión de respiración
+      const randomIndex = getRandomMusicIndex(-1); // -1 para que pueda seleccionar cualquier canción
+      setCurrentMusicIndex(randomIndex);
+    }
+  }, [breathingActive, showWelcome]);
+
   // Empathetic welcome animation
   useEffect(() => {
     const playWelcomeSequence = async () => {
@@ -124,7 +134,7 @@ const SOSScreen = ({ navigation }) => {
       ).start();
 
       // Cargar y reproducir música de fondo
-      loadAndPlaySound('softPiano', true, setBackgroundMusic);
+      // loadAndPlaySound('softPiano', true, setBackgroundMusic);
 
       // Reproducir el primer mensaje de bienvenida
       const welcomeMessage = mindfulnessMessages.welcome[0];
@@ -153,13 +163,9 @@ const SOSScreen = ({ navigation }) => {
     }
   }, [showWelcome]);
 
-  // useEffect para cambiar música cuando se inicia ejercicio de respiración
-  // NOTA: Este useEffect está comentado temporalmente para evitar conflictos
-  // con la música que se inicia en el callback de la animación
-  /*
   useEffect(() => {
     const loadBreathingMusic = async () => {
-      if (breathingActive && !showWelcome && backgroundMusic) {
+      if (breathingActive && !showWelcome && !backgroundMusic) {
         // Detener música actual
         try {
           await backgroundMusic.stopAsync();
@@ -168,16 +174,26 @@ const SOSScreen = ({ navigation }) => {
           console.log('Error stopping current music:', error);
         }
         
-        // Cargar música específica para ejercicios de respiración
+        // Cargar música aleatoria para ejercicios de respiración
         try {
           const { sound: bgMusic } = await Audio.Sound.createAsync(
-            require('../../assets/songs/Whispered Waves.mp3'),
+            backgroundMusicList[currentMusicIndex],
             {
               shouldPlay: true,
-              isLooping: true,
+              isLooping: false, // No loop para permitir cambio automático
               volume: 0.15, // Volumen para ejercicios de respiración
             }
           );
+          
+          // Configurar callback para cuando termine la canción
+          bgMusic.setOnPlaybackStatusUpdate((status) => {
+            if (status.didJustFinish && !status.isLooping) {
+              // Seleccionar siguiente canción aleatoria
+              const nextIndex = getRandomMusicIndex(currentMusicIndex);
+              setCurrentMusicIndex(nextIndex);
+            }
+          });
+          
           setBackgroundMusic(bgMusic);
         } catch (error) {
           console.log('Error loading breathing exercise music:', error);
@@ -186,8 +202,7 @@ const SOSScreen = ({ navigation }) => {
     };
     
     loadBreathingMusic();
-  }, [breathingActive, showWelcome]);
-  */
+  }, [breathingActive, showWelcome, currentMusicIndex]);
 
   // Función para obtener un mensaje aleatorio diferente al actual
   const getRandomMessage = (messagesArray, currentIndex) => {
@@ -1409,5 +1424,30 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
 });
+
+// Lista de canciones para música de fondo
+const backgroundMusicList = [
+  require('../../assets/songs/Dreaming in Slow Motion.mp3'),
+  require('../../assets/songs/Dreaming in Slow Motion 2.mp3'),
+  require('../../assets/songs/Drift Away.mp3'),
+  require('../../assets/songs/Drift Away 2.mp3'),
+  require('../../assets/songs/Driftwood Dreams.mp3'),
+  require('../../assets/songs/Driftwood Dreams (1).mp3'),
+  require('../../assets/songs/Moonlit Drift.mp3'),
+  require('../../assets/songs/Moonlit Drift 2.mp3'),
+  require('../../assets/songs/Whispered Waves.mp3'),
+  require('../../assets/songs/Whispered Waves 2.mp3'),
+  require('../../assets/songs/Whispering Tides.mp3'),
+  require('../../assets/songs/Whispering Tides 2.mp3'),
+];
+
+function getRandomMusicIndex(currentIndex) {
+  if (backgroundMusicList.length <= 1) return 0;
+  let randomIndex;
+  do {
+    randomIndex = Math.floor(Math.random() * backgroundMusicList.length);
+  } while (randomIndex === currentIndex);
+  return randomIndex;
+}
 
 export default SOSScreen;
