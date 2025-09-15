@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,9 +7,11 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Alert,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Audio } from 'expo-av';
 import { useTheme } from '../context/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { updateShieldLevel } from '../utils/statsUtils';
@@ -17,6 +19,17 @@ import { updateShieldLevel } from '../utils/statsUtils';
 const SleepMelodiesScreen = ({ navigation }) => {
   const { colors } = useTheme();
   const [playingSound, setPlayingSound] = useState(null);
+  const [sound, setSound] = useState(null);
+
+  // Cleanup de audio cuando se desmonte el componente
+  useEffect(() => {
+    return () => {
+      if (sound) {
+        sound.stopAsync().catch(() => {});
+        sound.unloadAsync().catch(() => {});
+      }
+    };
+  }, [sound]);
 
   const sleepSounds = [
     {
@@ -85,14 +98,90 @@ const SleepMelodiesScreen = ({ navigation }) => {
     }
   ];
 
-  const handlePlaySound = async (sound) => {
-    if (playingSound === sound.id) {
+  // Mapeo de archivos de audio de sleep
+  const sleepAudioMap = {
+    1: require('../../assets/sleep/rain.mp3'), // Gentle Rain
+    2: require('../../assets/sleep/waves.mp3'), // Ocean Waves
+    3: require('../../assets/sleep/forest.mp3'), // Forest Sounds
+    4: require('../../assets/sleep/whitenoise.mp3'), // White Noise
+    5: require('../../assets/sleep/piano.mp3'), // Piano Melodies
+    6: require('../../assets/sleep/thunder.mp3'), // Thunderstorm
+    7: require('../../assets/sleep/fire.mp3'), // Fireplace
+    8: require('../../assets/sleep/crickets.mp3'), // Night Crickets
+  };
+
+  // Función para reproducir sonidos de sleep
+  const playSound = async (soundId) => {
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        staysActiveInBackground: true,
+        playsInSilentModeIOS: true,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      });
+      
+      // Detener sonido anterior si existe
+      if (sound) {
+        try {
+          await sound.stopAsync();
+          await sound.unloadAsync();
+        } catch (cleanupError) {
+          console.log('Error cleaning up previous sound:', cleanupError);
+        }
+        setSound(null);
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      if (Platform.OS === 'web') {
+        console.log('Audio playback disabled for web platform');
+        return;
+      }
+      
+      const audioSource = sleepAudioMap[soundId];
+      if (!audioSource) {
+        console.log('Audio file not found for sound ID:', soundId);
+        return;
+      }
+      
+      // Crear y reproducir el sonido
+      const { sound: newSound } = await Audio.Sound.createAsync(
+        audioSource,
+        { 
+          shouldPlay: true, 
+          isLooping: true, 
+          volume: 0.7,
+          rate: 1.0,
+          shouldCorrectPitch: true
+        }
+      );
+      
+      setSound(newSound);
+    } catch (error) {
+      console.log('Error playing sound:', error);
+    }
+  };
+
+  const handlePlaySound = async (soundItem) => {
+    if (playingSound === soundItem.id) {
       // Stop current sound
+      if (sound) {
+        try {
+          await sound.stopAsync();
+          await sound.unloadAsync();
+        } catch (error) {
+          console.log('Error stopping sound:', error);
+        }
+        setSound(null);
+      }
       setPlayingSound(null);
-      Alert.alert('Stopped', `${sound.title} has been stopped.`);
+      Alert.alert('Stopped', `${soundItem.title} has been stopped.`);
     } else {
       // Play new sound
-      setPlayingSound(sound.id);
+      setPlayingSound(soundItem.id);
+      
+      // Reproducir el audio real
+      await playSound(soundItem.id);
       
       try {
         // Registrar el uso de melodías para dormir para el nivel de escudo
@@ -112,9 +201,20 @@ const SleepMelodiesScreen = ({ navigation }) => {
       
       Alert.alert(
         'Now Playing',
-        `${sound.title} is now playing.\n\nDuration: ${sound.duration}\n\nTip: Find a comfortable position and let the sounds guide you to peaceful sleep.`,
+        `${soundItem.title} is now playing.\n\nDuration: ${soundItem.duration}\n\nTip: Find a comfortable position and let the sounds guide you to peaceful sleep.`,
         [
-          { text: 'Stop', onPress: () => setPlayingSound(null) },
+          { text: 'Stop', onPress: async () => {
+            if (sound) {
+              try {
+                await sound.stopAsync();
+                await sound.unloadAsync();
+              } catch (error) {
+                console.log('Error stopping sound:', error);
+              }
+              setSound(null);
+            }
+            setPlayingSound(null);
+          }},
           { text: 'Continue', style: 'default' }
         ]
       );
