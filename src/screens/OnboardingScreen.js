@@ -332,7 +332,7 @@ const OnboardingScreen = ({ navigation }) => {
           <View style={styles.cardProgressBar}>
             <View style={[styles.cardProgressFill, { width: `${progress}%` }]} />
           </View>
-          <Text style={styles.cardProgressText}>{questionIndex.current + 1} de {questions.length}</Text>
+          <Text style={styles.cardProgressText}>{questionIndex.current + 1} of {questions.length}</Text>
         </View>
 
         <View style={styles.questionContainer}>
