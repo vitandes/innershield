@@ -175,7 +175,6 @@ const SleepMelodiesScreen = ({ navigation }) => {
         setSound(null);
       }
       setPlayingSound(null);
-      Alert.alert('Stopped', `${soundItem.title} has been stopped.`);
     } else {
       // Play new sound
       setPlayingSound(soundItem.id);
@@ -198,26 +197,6 @@ const SleepMelodiesScreen = ({ navigation }) => {
       } catch (error) {
         console.error('Error updating shield level:', error);
       }
-      
-      Alert.alert(
-        'Now Playing',
-        `${soundItem.title} is now playing.\n\nDuration: ${soundItem.duration}\n\nTip: Find a comfortable position and let the sounds guide you to peaceful sleep.`,
-        [
-          { text: 'Stop', onPress: async () => {
-            if (sound) {
-              try {
-                await sound.stopAsync();
-                await sound.unloadAsync();
-              } catch (error) {
-                console.log('Error stopping sound:', error);
-              }
-              setSound(null);
-            }
-            setPlayingSound(null);
-          }},
-          { text: 'Continue', style: 'default' }
-        ]
-      );
     }
   };
 
