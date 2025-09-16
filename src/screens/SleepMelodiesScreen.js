@@ -38,7 +38,6 @@ const SleepMelodiesScreen = ({ navigation }) => {
       subtitle: 'Soft rainfall sounds',
       icon: 'rainy',
       color: ['#4FC3F7', '#29B6F6'],
-      duration: '30 min'
     },
     {
       id: 2,
@@ -46,7 +45,6 @@ const SleepMelodiesScreen = ({ navigation }) => {
       subtitle: 'Peaceful beach sounds',
       icon: 'water',
       color: ['#26C6DA', '#00BCD4'],
-      duration: '45 min'
     },
     {
       id: 3,
@@ -54,7 +52,6 @@ const SleepMelodiesScreen = ({ navigation }) => {
       subtitle: 'Birds and nature',
       icon: 'leaf',
       color: ['#66BB6A', '#4CAF50'],
-      duration: '60 min'
     },
     {
       id: 4,
@@ -62,7 +59,6 @@ const SleepMelodiesScreen = ({ navigation }) => {
       subtitle: 'Consistent background',
       icon: 'radio',
       color: ['#BDBDBD', '#9E9E9E'],
-      duration: '∞'
     },
     {
       id: 5,
@@ -70,7 +66,6 @@ const SleepMelodiesScreen = ({ navigation }) => {
       subtitle: 'Soft instrumental',
       icon: 'musical-notes',
       color: ['#BA68C8', '#9C27B0'],
-      duration: '40 min'
     },
     {
       id: 6,
@@ -78,7 +73,6 @@ const SleepMelodiesScreen = ({ navigation }) => {
       subtitle: 'Distant thunder',
       icon: 'thunderstorm',
       color: ['#5C6BC0', '#3F51B5'],
-      duration: '35 min'
     },
     {
       id: 7,
@@ -86,7 +80,6 @@ const SleepMelodiesScreen = ({ navigation }) => {
       subtitle: 'Crackling fire',
       icon: 'flame',
       color: ['#FF8A65', '#FF5722'],
-      duration: '50 min'
     },
     {
       id: 8,
@@ -94,7 +87,6 @@ const SleepMelodiesScreen = ({ navigation }) => {
       subtitle: 'Peaceful evening',
       icon: 'moon',
       color: ['#7986CB', '#3F51B5'],
-      duration: '25 min'
     }
   ];
 
@@ -248,7 +240,6 @@ const SleepMelodiesScreen = ({ navigation }) => {
                 </View>
                 <Text style={styles.soundTitle}>{sound.title}</Text>
                 <Text style={styles.soundSubtitle}>{sound.subtitle}</Text>
-                <Text style={styles.soundDuration}>{sound.duration}</Text>
               </LinearGradient>
             </TouchableOpacity>
           ))}
