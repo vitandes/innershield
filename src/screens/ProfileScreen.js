@@ -160,7 +160,7 @@ const ProfileScreen = ({ navigation }) => {
       <View style={styles.content}>
         <View style={styles.profileInfo}>
           <Image 
-            source={require('../../assets/icono-profile.webp')} 
+            source={require('../../assets/icono-profile.png')} 
             style={styles.profileIcon}
             resizeMode="contain"
           />

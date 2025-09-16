@@ -4,7 +4,7 @@
     "slug": "innershield",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/iconoapp.webp",
+    "icon": "./assets/iconoapp.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -14,11 +14,17 @@
     },
     "ios": {
       "supportsTablet": true,
-      "icon": "./assets/iconoapp.webp",
+      "icon": "./assets/iconoapp.png",
+      "bundleIdentifier": "com.innershield.app",
+      "buildNumber": "1",
       "infoPlist": {
         "UIBackgroundModes": [
+          "audio",
           "audio"
-        ]
+        ],
+        "NSMicrophoneUsageDescription": "Esta aplicación necesita acceso al micrófono para funciones de respiración guiada.",
+        "NSCameraUsageDescription": "Esta aplicación puede necesitar acceso a la cámara para funciones futuras.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -26,10 +32,28 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "package": "com.innershield.app",
+      "versionCode": 1,
       "edgeToEdgeEnabled": true
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "privacy": "public",
+    "description": "InnerShield - Tu compañero para el bienestar mental y la relajación",
+    "keywords": [
+      "bienestar",
+      "meditación",
+      "relajación",
+      "salud mental",
+      "mindfulness"
+    ],
+    "category": "health-fitness",
+    "extra": {
+      "eas": {
+        "projectId": "01b3db52-d9ca-40b9-a32e-d68a1a96fd53"
+      }
+    },
+    "owner": "vitandes"
   }
 }

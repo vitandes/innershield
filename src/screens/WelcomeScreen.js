@@ -50,7 +50,7 @@ const WelcomeScreen = ({ navigation }) => {
           {/* Logo/Icono */}
           <View style={styles.logoContainer}>
             <Image 
-              source={require('../../assets/icono-profile.webp')} 
+              source={require('../../assets/icono-profile.png')} 
               style={styles.logo}
               resizeMode="contain"
             />

@@ -86,7 +86,7 @@ const OnboardingScreen = ({ navigation }) => {
     {
       id: 0,
       question: 'Which option best describes your stress level?',
-      background: require('../../assets/onboarding/fondo1.webp'),
+      background: require('../../assets/onboarding/fondo1.png'),
       options: [
         { id: 'crisis', text: 'I am in crisis', emoji: '😰', value: 4 },
         { id: 'problems', text: 'I am having problems', emoji: '😟', value: 3 },
@@ -97,7 +97,7 @@ const OnboardingScreen = ({ navigation }) => {
     {
       id: 1,
       question: 'What is your gender?',
-      background: require('../../assets/onboarding/fondo2.webp'),
+      background: require('../../assets/onboarding/fondo2.png'),
       options: [
         { id: 'female', text: 'Female', emoji: '👩', value: 'female' },
         { id: 'male', text: 'Male', emoji: '👨', value: 'male' },
@@ -108,7 +108,7 @@ const OnboardingScreen = ({ navigation }) => {
     {
       id: 2,
       question: 'How often do you feel overwhelmed?',
-      background: require('../../assets/onboarding/fondo3.webp'),
+      background: require('../../assets/onboarding/fondo3.png'),
       options: [
         { id: 'always', text: 'Always or almost always', emoji: '😵', value: 4 },
         { id: 'often', text: 'Frequently', emoji: '😓', value: 3 },
@@ -119,7 +119,7 @@ const OnboardingScreen = ({ navigation }) => {
     {
       id: 3,
       question: 'How would you rate your sleep quality?',
-      background: require('../../assets/onboarding/fondo4.webp'),
+      background: require('../../assets/onboarding/fondo4.png'),
       options: [
         { id: 'terrible', text: 'Terrible, I don\'t sleep well', emoji: '😴', value: 4 },
         { id: 'poor', text: 'Poor, I wake up tired', emoji: '😪', value: 3 },
@@ -130,7 +130,7 @@ const OnboardingScreen = ({ navigation }) => {
     {
       id: 4,
       question: 'How difficult is it for you to manage your emotions?',
-      background: require('../../assets/onboarding/fondo5.webp'),
+      background: require('../../assets/onboarding/fondo5.png'),
       options: [
         { id: 'very-hard', text: 'Very difficult, I feel lost', emoji: '😭', value: 4 },
         { id: 'hard', text: 'Difficult, I need help', emoji: '😢', value: 3 },
@@ -141,7 +141,7 @@ const OnboardingScreen = ({ navigation }) => {
     {
       id: 5,
       question: 'How often do you practice self-care?',
-      background: require('../../assets/onboarding/fondo6.webp'),
+      background: require('../../assets/onboarding/fondo6.png'),
       options: [
         { id: 'never', text: 'Never, I don\'t have time', emoji: '😞', value: 4 },
         { id: 'rarely', text: 'Rarely, I forget', emoji: '😕', value: 3 },
@@ -152,7 +152,7 @@ const OnboardingScreen = ({ navigation }) => {
     {
       id: 6,
       question: 'What motivated you to look for a wellness app?',
-      background: require('../../assets/onboarding/fondo7.webp'),
+      background: require('../../assets/onboarding/fondo7.png'),
       options: [
         { id: 'crisis', text: 'I am in crisis and need urgent help', emoji: '🆘', value: 4 },
         { id: 'struggling', text: 'I am struggling and seeking support', emoji: '💪', value: 3 },
@@ -318,7 +318,7 @@ const OnboardingScreen = ({ navigation }) => {
         {/* Bear Character en el banner */}
         <View style={styles.bearContainer}>
           <Image 
-            source={require('../../assets/onboarding/oso.webp')} 
+            source={require('../../assets/onboarding/oso.png')} 
             style={styles.bearImage}
             resizeMode="contain"
           />
