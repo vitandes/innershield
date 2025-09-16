@@ -181,7 +181,7 @@ const SOSScreen = ({ navigation }) => {
             {
               shouldPlay: true,
               isLooping: false, // No loop para permitir cambio automático
-              volume: 0.15, // Volumen para ejercicios de respiración
+              volume: 0.05, // Volumen para ejercicios de respiración
             }
           );
           
@@ -934,7 +934,7 @@ const SOSScreen = ({ navigation }) => {
               <Ionicons name="close" size={24} color="rgba(255,255,255,0.8)" />
             </TouchableOpacity>
             
-            <Text style={styles.headerTitle}>Session</Text>
+            <Text style={styles.headerTitle}>Calm Session</Text>
             
             <TouchableOpacity style={styles.musicButton}>
               <Ionicons name="musical-notes" size={24} color="rgba(255,255,255,0.8)" />
@@ -965,21 +965,10 @@ const SOSScreen = ({ navigation }) => {
             </Text>
           </View>
 
-          {/* Botón de pausa */}
-          <TouchableOpacity 
-              style={styles.pauseButton}
-              onPress={() => {
-                if (isPaused) {
-                  // Reanudar
-                  setIsPaused(false);
-                } else {
-                  // Pausar
-                  setIsPaused(true);
-                }
-              }}
-            >
-              <Ionicons name={isPaused ? "play" : "pause"} size={32} color="rgba(255,255,255,0.9)" />
-            </TouchableOpacity>
+          {/* Indicador de reproducción */}
+          <View style={styles.playIndicator}>
+            <Ionicons name="play" size={32} color="rgba(255,255,255,0.9)" />
+          </View>
         </View>
            )}
          </LinearGradient>
@@ -1282,7 +1271,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
   },
-  pauseButton: {
+  playIndicator: {
     width: 80,
     height: 80,
     borderRadius: 40,
