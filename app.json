@@ -14,7 +14,12 @@
     },
     "ios": {
       "supportsTablet": true,
-      "icon": "./assets/iconoapp.webp"
+      "icon": "./assets/iconoapp.webp",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "audio"
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
