@@ -18,6 +18,7 @@ import JournalScreen from '../screens/JournalScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import WelcomeScreen from '../screens/WelcomeScreen';
+import LoginScreen from '../screens/LoginScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -88,6 +89,11 @@ export default function AppNavigator() {
         screenOptions={{
           headerShown: false,
         }}>
+        <Stack.Screen 
+          name="Login" 
+          component={LoginScreen} 
+          options={{ headerShown: false }}
+        />
         <Stack.Screen 
           name="Welcome" 
           component={WelcomeScreen} 

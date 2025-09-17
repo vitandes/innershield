@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, TextInput, Image, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, TextInput, Image, StatusBar, ScrollView, Dimensions } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { dailyMessages } from '../data/dailyMessages';
+import { colors } from '../theme/colors';
+
+const { width } = Dimensions.get('window');
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -204,12 +208,10 @@ const ProfileScreen = ({ navigation }) => {
 
           <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
             <Text style={styles.menuItemText}>Logout</Text>
-            <Ionicons name="log-out-outline" size={24} color="#ccc" />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuItem} onPress={handleDeleteAccount}>
             <Text style={[styles.menuItemText, styles.deleteText]}>Delete Account</Text>
-            <Ionicons name="trash-outline" size={24} color="#FF6B6B" />
           </TouchableOpacity>
         </View>
       </View>
@@ -220,93 +222,189 @@ const ProfileScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.neutral.lightestGray,
+  },
+  headerGradient: {
+    paddingTop: StatusBar.currentHeight || 44,
+    paddingBottom: 30,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingTop: StatusBar.currentHeight || 44,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+  },
+  backButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: colors.alpha.white20,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginLeft: 16,
-  },
-  content: {
+    color: colors.neutral.white,
     flex: 1,
-    padding: 20,
+    textAlign: 'center',
   },
-  profileInfo: {
+  headerSpacer: {
+    width: 40,
+  },
+  profileSection: {
     alignItems: 'center',
-    marginBottom: 40,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
-  profileIcon: {
-    width: 80,
-    height: 80,
+  profileImageContainer: {
     marginBottom: 15,
+  },
+  profileImageBackground: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: colors.alpha.white20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: colors.neutral.black,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   nameContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 8,
   },
   profileName: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
+    color: colors.neutral.white,
     marginRight: 10,
   },
   editButton: {
-    padding: 5,
+    padding: 8,
+    borderRadius: 15,
+    backgroundColor: colors.alpha.white20,
+  },
+  profileSubtitle: {
+    fontSize: 16,
+    color: colors.alpha.white80,
+    textAlign: 'center',
   },
   editNameContainer: {
     alignItems: 'center',
     width: '100%',
+    marginBottom: 8,
   },
   nameInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
+    borderWidth: 2,
+    borderColor: colors.alpha.white30,
+    borderRadius: 15,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     fontSize: 18,
     textAlign: 'center',
     marginBottom: 15,
     width: '80%',
+    backgroundColor: colors.alpha.white20,
+    color: colors.neutral.white,
   },
   editButtons: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 15,
   },
   saveButton: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 20,
-    padding: 8,
+    backgroundColor: colors.secondary.mint,
+    borderRadius: 25,
+    padding: 12,
+    shadowColor: colors.neutral.black,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   cancelButton: {
-    backgroundColor: '#f44336',
-    borderRadius: 20,
-    padding: 8,
+    backgroundColor: colors.primary.red,
+    borderRadius: 25,
+    padding: 12,
+    shadowColor: colors.neutral.black,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  menu: {
-    marginTop: 20,
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  section: {
+    marginBottom: 25,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.neutral.darkGray,
+    marginBottom: 12,
+    marginLeft: 5,
+  },
+  menuCard: {
+    backgroundColor: colors.neutral.white,
+    borderRadius: 16,
+    shadowColor: colors.neutral.black,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   menuItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+  },
+  menuItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  menuIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
   },
   menuItemText: {
-    fontSize: 18,
+    fontSize: 16,
+    color: colors.neutral.darkGray,
+    fontWeight: '500',
   },
   deleteText: {
-    color: '#FF6B6B',
+    color: colors.primary.red,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.neutral.lightGray,
+    marginHorizontal: 20,
+  },
+  bottomSpacing: {
+    height: 30,
   },
 });
 

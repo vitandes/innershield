@@ -8,8 +8,8 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-text.svg",
-      "resizeMode": "contain",
+      "image": "./assets/splash-icon.png", 
+      "resizeMode": "cover",
       "backgroundColor": "#B39DDB"
     },
     "ios": {
@@ -17,9 +17,9 @@
       "icon": "./assets/iconoapp.png",
       "bundleIdentifier": "com.innershield.app",
       "buildNumber": "1",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "UIBackgroundModes": [
-          "audio",
           "audio"
         ],
         "NSMicrophoneUsageDescription": "Esta aplicación necesita acceso al micrófono para funciones de respiración guiada.",
@@ -39,21 +39,23 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "privacy": "public",
-    "description": "InnerShield - Tu compañero para el bienestar mental y la relajación",
-    "keywords": [
-      "bienestar",
-      "meditación",
-      "relajación",
-      "salud mental",
-      "mindfulness"
-    ],
-    "category": "health-fitness",
     "extra": {
       "eas": {
         "projectId": "01b3db52-d9ca-40b9-a32e-d68a1a96fd53"
       }
     },
-    "owner": "vitandes"
+    "owner": "vitandes",
+    "plugins": [ 
+      "@react-native-firebase/app",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static",
+            "CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES": true
+          }
+        }
+      ]
+    ]
   }
 }
