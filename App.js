@@ -7,6 +7,9 @@ import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { AuthProvider } from './src/context/AuthContext';
 import { dailyMessages } from './src/data/dailyMessages';
 
+// Inicializar Firebase
+import '@react-native-firebase/app';
+
 // Configurar el handler de notificaciones
 Notifications.setNotificationHandler({
   handleNotification: async () => ({

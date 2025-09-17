@@ -6,11 +6,13 @@ import auth from '@react-native-firebase/auth';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
+import { useAuth } from '../context/AuthContext';
 
 const { width, height } = Dimensions.get('window');
 
 export default function LoginScreen() {
   const navigation = useNavigation();
+  const { signInWithApple } = useAuth();
 
   // Función para manejar el inicio de sesión con Apple
   async function onAppleButtonPress() {
@@ -31,11 +33,11 @@ export default function LoginScreen() {
         // 3. Crea una credencial de Firebase con el proveedor de Apple
         const appleCredential = auth.AppleAuthProvider.credential(identityToken);
 
-        // 4. Inicia sesión en Firebase con esa credencial
-        const userCredential = await auth().signInWithCredential(appleCredential);
+        // 4. Usa el método del AuthContext para iniciar sesión
+        const userCredential = await signInWithApple(appleCredential);
         
         console.log("¡Usuario autenticado con éxito!", userCredential.user);
-        navigation.navigate('Welcome');
+        // La navegación se manejará automáticamente por el AppNavigator
         return userCredential;
       } else {
         throw new Error('No se recibió el token de identidad de Apple.');

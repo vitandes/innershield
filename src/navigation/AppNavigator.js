@@ -1,24 +1,31 @@
 import React from 'react';
-import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { View, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../context/ThemeContext';
 
-import HomeScreen from '../screens/HomeScreen';
-import InsightsScreen from '../screens/InsightsScreen';
-import SOSScreen from '../screens/SOSScreen';
-import SOSFeedbackScreen from '../screens/SOSFeedbackScreen';
-import BreathingFeedbackScreen from '../screens/BreathingFeedbackScreen';
-import ShieldScreen from '../screens/ShieldScreen';
-import MoreScreen from '../screens/MoreScreen';
-import BreathingScreen from '../screens/BreathingScreen';
-import SleepMelodiesScreen from '../screens/SleepMelodiesScreen';
-import JournalScreen from '../screens/JournalScreen';
-import ProfileScreen from '../screens/ProfileScreen';
-import OnboardingScreen from '../screens/OnboardingScreen';
-import WelcomeScreen from '../screens/WelcomeScreen';
+// Screens
 import LoginScreen from '../screens/LoginScreen';
+import WelcomeScreen from '../screens/WelcomeScreen';
+import HomeScreen from '../screens/HomeScreen';
+import ShieldScreen from '../screens/ShieldScreen';
+import BreathingScreen from '../screens/BreathingScreen';
+import SOSScreen from '../screens/SOSScreen';
+import JournalScreen from '../screens/JournalScreen';
+import InsightsScreen from '../screens/InsightsScreen';
+import ProfileScreen from '../screens/ProfileScreen';
+import MoreScreen from '../screens/MoreScreen';
+import OnboardingScreen from '../screens/OnboardingScreen';
+import BreathingFeedbackScreen from '../screens/BreathingFeedbackScreen';
+import SOSFeedbackScreen from '../screens/SOSFeedbackScreen';
+import SleepMelodiesScreen from '../screens/SleepMelodiesScreen';
+
+// Context
+import { useAuth } from '../context/AuthContext';
+
+// Colors
+import { colors } from '../theme/colors';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -68,94 +75,70 @@ function TabNavigator() {
 }
 
 export default function AppNavigator() {
-  const { isDarkMode, colors } = useTheme();
+  const { user, isLoading, initializing } = useAuth();
   
-  // Tema personalizado para Navigation Container
-  const navigationTheme = {
-    ...isDarkMode ? DarkTheme : DefaultTheme,
-    colors: {
-      ...isDarkMode ? DarkTheme.colors : DefaultTheme.colors,
-      primary: colors.primary.purple,
-      background: colors.background,
-      card: colors.surface,
-      text: colors.text,
-      border: colors.border,
-    },
-  };
+  // Mostrar loading mientras se inicializa la autenticación
+  if (initializing || isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }}>
+        <ActivityIndicator size="large" color={colors.primary.purple} />
+      </View>
+    );
+  }
 
   return (
-    <NavigationContainer theme={navigationTheme}>
+    <NavigationContainer>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
         }}>
-        <Stack.Screen 
-          name="Login" 
-          component={LoginScreen} 
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen 
-          name="Welcome" 
-          component={WelcomeScreen} 
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen 
-          name="Onboarding" 
-          component={OnboardingScreen} 
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen 
-          name="Main" 
-          component={TabNavigator} 
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen 
-          name="SOS" 
-          component={SOSScreen} 
-          options={{ 
-            headerShown: false
-          }}
-        />
-        <Stack.Screen 
-          name="Shield" 
-          component={ShieldScreen} 
-          options={{ title: 'Protective Shield' }}
-        />
-        <Stack.Screen 
-          name="More" 
-          component={MoreScreen} 
-          options={{ title: 'Settings' }}
-        />
-        <Stack.Screen 
-          name="Breathing" 
-          component={BreathingScreen} 
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen 
-          name="SOSFeedback" 
-          component={SOSFeedbackScreen} 
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen 
-          name="BreathingFeedback" 
-          component={BreathingFeedbackScreen} 
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen 
-          name="SleepMelodies" 
-          component={SleepMelodiesScreen} 
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen 
-          name="Journal" 
-          component={JournalScreen} 
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen 
-          name="Profile" 
-          component={ProfileScreen} 
-          options={{ headerShown: false }}
-        />
+        {user ? (
+          // Usuario autenticado - mostrar pantallas principales
+          <>
+            <Stack.Screen 
+              name="Welcome" 
+              component={WelcomeScreen} 
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="Onboarding" 
+              component={OnboardingScreen} 
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="Main" 
+              component={TabNavigator} 
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="Breathing" 
+              component={BreathingScreen} 
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="BreathingFeedback" 
+              component={BreathingFeedbackScreen} 
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="SOSFeedback" 
+              component={SOSFeedbackScreen} 
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="SleepMelodies" 
+              component={SleepMelodiesScreen} 
+              options={{ headerShown: false }}
+            />
+          </>
+        ) : (
+          // Usuario no autenticado - solo mostrar login
+          <Stack.Screen 
+            name="Login" 
+            component={LoginScreen} 
+            options={{ headerShown: false }}
+          />
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -6,6 +6,7 @@ import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { dailyMessages } from '../data/dailyMessages';
 import { colors } from '../theme/colors';
+import { useAuth } from '../context/AuthContext';
 
 const { width } = Dimensions.get('window');
 
@@ -57,6 +58,7 @@ const cancelAllNotifications = async () => {
 };
 
 const ProfileScreen = ({ navigation }) => {
+  const { signOut, deleteAccount } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [userName, setUserName] = useState('Usuario');
   const [isEditingName, setIsEditingName] = useState(false);
@@ -139,17 +141,25 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   const handleLogout = () => {
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Logout', onPress: () => console.log('Logged out') },
-    ]);
+    Alert.alert(
+      'Cerrar Sesión',
+      '¿Estás seguro de que quieres cerrar sesión?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Cerrar Sesión', onPress: signOut }
+      ]
+    );
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert('Delete Account', 'Are you sure you want to delete your account? This action cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', onPress: () => console.log('Account deleted'), style: 'destructive' },
-    ]);
+    Alert.alert(
+      'Eliminar Cuenta',
+      '¿Estás seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: deleteAccount }
+      ]
+    );
   };
 
   return (

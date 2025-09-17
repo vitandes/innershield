@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/iconoapp.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false, 
     "splash": {
       "image": "./assets/splash-icon.png", 
       "resizeMode": "cover",
@@ -18,6 +18,7 @@
       "bundleIdentifier": "com.innershield.app",
       "buildNumber": "1",
       "googleServicesFile": "./GoogleService-Info.plist",
+      "usesSwift": true,
       "infoPlist": {
         "UIBackgroundModes": [
           "audio"
@@ -46,7 +47,7 @@
     },
     "owner": "vitandes",
     "plugins": [ 
-      "@react-native-firebase/app",
+      "./plugins/withFirebaseSwift",
       [
         "expo-build-properties",
         {
