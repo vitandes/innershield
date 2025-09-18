@@ -15,6 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "icon": "./assets/iconoapp.png",
+      "usesAppleSignIn": true,
       "bundleIdentifier": "com.innershield.app",
       "buildNumber": "1",
       "googleServicesFile": "./GoogleService-Info.plist",
@@ -47,9 +48,12 @@
     },
     "owner": "vitandes",
     "plugins": [ 
+       "expo-apple-authentication",
       "./plugins/withFirebaseSwift",
+     
       [
         "expo-build-properties",
+        
         {
           "ios": {
             "useFrameworks": "static",

@@ -1,112 +1,77 @@
-import React from 'react';
-import { View, StyleSheet, Alert, Text, StatusBar, Dimensions } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import React, { useState } from 'react';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import { View, StyleSheet, Alert, ActivityIndicator, Text } from 'react-native';
 import auth from '@react-native-firebase/auth';
-import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../theme/colors';
 import { useAuth } from '../context/AuthContext';
 
-const { width, height } = Dimensions.get('window');
-
 export default function LoginScreen() {
-  const navigation = useNavigation();
+  const [isLoading, setIsLoading] = useState(false);
   const { signInWithApple } = useAuth();
 
-  // Función para manejar el inicio de sesión con Apple
-  async function onAppleButtonPress() {
+  const handleAppleSignIn = async () => {
     try {
-      // 1. Inicia el proceso de autenticación con Apple
-      const appleAuthRequest = await AppleAuthentication.signInAsync({
+      setIsLoading(true);
+      
+      // Realizar la autenticación con Apple
+      const appleAuthRequestResponse = await AppleAuthentication.signInAsync({
         requestedScopes: [
           AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
           AppleAuthentication.AppleAuthenticationScope.EMAIL,
         ],
       });
 
+      // Crear las credenciales de Firebase
+      const { identityToken, nonce } = appleAuthRequestResponse;
       
-      // 2. Obtén el token de identidad que devuelve Apple
-      const { identityToken } = appleAuthRequest;
-
       if (identityToken) {
-        // 3. Crea una credencial de Firebase con el proveedor de Apple
-        const appleCredential = auth.AppleAuthProvider.credential(identityToken);
-
-        // 4. Usa el método del AuthContext para iniciar sesión
-        const userCredential = await signInWithApple(appleCredential);
+        const appleCredential = auth.AppleAuthProvider.credential(identityToken, nonce);
         
-        console.log("¡Usuario autenticado con éxito!", userCredential.user);
-        // La navegación se manejará automáticamente por el AppNavigator
-        return userCredential;
+        // Usar el método del AuthContext para mantener consistencia
+        await signInWithApple(appleCredential);
+        
+        console.log('Apple Sign-In successful');
       } else {
-        throw new Error('No se recibió el token de identidad de Apple.');
+        throw new Error('No identity token received from Apple');
       }
-
+      
     } catch (error) {
+      console.error('Apple Sign-In Error:', error);
+      
       if (error.code === 'ERR_REQUEST_CANCELED') {
-        // El usuario canceló el inicio de sesión
-        console.log('El usuario canceló el inicio de sesión con Apple.');
+        // El usuario canceló el proceso de autenticación
+        console.log('User canceled Apple Sign-In');
       } else {
-        // Manejo de otros errores
-        Alert.alert("Error de autenticación", "Algo salió mal al intentar iniciar sesión con Apple.");
-        console.error(error);
+        // Mostrar error al usuario
+        Alert.alert(
+          'Error de Autenticación',
+          'No se pudo completar el inicio de sesión con Apple. Por favor, inténtalo de nuevo.',
+          [{ text: 'OK' }]
+        );
       }
+    } finally {
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.primary.purple} />
+      <Text style={styles.title}>Bienvenido a InnerShield</Text>
+      <Text style={styles.subtitle}>Inicia sesión para continuar</Text>
       
-      {/* Fondo con gradiente */}
-      <LinearGradient
-        colors={colors.gradients.mindful}
-        style={styles.gradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        {/* Elementos decorativos */}
-        <View style={styles.decorativeCircle1} />
-        <View style={styles.decorativeCircle2} />
-        <View style={styles.decorativeCircle3} />
-        
-        {/* Contenido principal */}
-        <View style={styles.content}>
-          {/* Logo/Icono de la app */}
-          <View style={styles.logoContainer}>
-            <View style={styles.logoBackground}>
-              <Ionicons name="shield-checkmark" size={60} color={colors.neutral.white} />
-            </View>
-          </View>
-          
-          {/* Título y subtítulo */}
-          <View style={styles.textContainer}>
-            <Text style={styles.title}>InnerShield</Text>
-            <Text style={styles.subtitle}>Tu espacio seguro para el bienestar mental</Text>
-            <Text style={styles.description}>
-              Inicia sesión para acceder a herramientas de mindfulness, 
-              respiración guiada y apoyo emocional personalizado
-            </Text>
-          </View>
-          
-          {/* Botón de Apple */}
-          <View style={styles.buttonContainer}>
-            <AppleAuthentication.AppleAuthenticationButton
-              buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
-              cornerRadius={25}
-              style={styles.appleButton}
-              onPress={onAppleButtonPress}
-            />
-          </View>
-          
-          {/* Texto de privacidad */}
-          <Text style={styles.privacyText}>
-            Al continuar, aceptas nuestros términos de servicio y política de privacidad
-          </Text>
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#000" />
+          <Text style={styles.loadingText}>Iniciando sesión...</Text>
         </View>
-      </LinearGradient>
+      ) : (
+        <AppleAuthentication.AppleAuthenticationButton
+          buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+          buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+          cornerRadius={8}
+          style={styles.button}
+          onPress={handleAppleSignIn}
+        />
+      )}
     </View>
   );
 }
@@ -114,111 +79,37 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  gradient: {
-    flex: 1,
-    position: 'relative',
-  },
-  decorativeCircle1: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: colors.alpha.white20,
-    top: -50,
-    right: -50,
-  },
-  decorativeCircle2: {
-    position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: colors.alpha.white10,
-    bottom: 100,
-    left: -30,
-  },
-  decorativeCircle3: {
-    position: 'absolute',
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: colors.alpha.white15,
-    top: height * 0.3,
-    right: 30,
-  },
-  content: {
-    flex: 1,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 30,
-    paddingVertical: 50,
-  },
-  logoContainer: {
-    marginBottom: 40,
-  },
-  logoBackground: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: colors.alpha.white20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: colors.neutral.black,
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  textContainer: {
-    alignItems: 'center',
-    marginBottom: 50,
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 20,
   },
   title: {
-    fontSize: 36,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: colors.neutral.white,
-    marginBottom: 8,
+    color: '#333',
+    marginBottom: 10,
     textAlign: 'center',
-    letterSpacing: 1,
   },
   subtitle: {
-    fontSize: 18,
-    color: colors.alpha.white90,
-    marginBottom: 20,
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  description: {
     fontSize: 16,
-    color: colors.alpha.white80,
+    color: '#666',
+    marginBottom: 40,
     textAlign: 'center',
-    lineHeight: 24,
-    paddingHorizontal: 10,
   },
-  buttonContainer: {
-    width: '100%',
-    marginBottom: 30,
+  button: {
+    width: 280,
+    height: 44,
+    marginTop: 20,
   },
-  appleButton: {
-    width: '100%',
-    height: 55,
-    shadowColor: colors.neutral.black,
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
   },
-  privacyText: {
-    fontSize: 12,
-    color: colors.alpha.white70,
-    textAlign: 'center',
-    lineHeight: 18,
-    paddingHorizontal: 20,
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
   },
 });
