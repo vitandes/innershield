@@ -4,7 +4,7 @@ import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AppNavigator from './src/navigation/AppNavigator';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
-import { AuthProvider } from './src/context/AuthContext';
+import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { dailyMessages } from './src/data/dailyMessages';
 
 
@@ -149,11 +149,29 @@ const initializeAutoNotifications = async () => {
 
 function AppContent() {
   const { isDarkMode } = useTheme();
+  const { user, getUserUID, isAuthenticated } = useAuth();
   
   useEffect(() => {
     // Inicializar el sistema de notificaciones automáticas
     initializeAutoNotifications();
   }, []);
+
+  // Mostrar UID en console.log cuando el usuario esté loggeado
+  useEffect(() => {
+    const showUserUID = async () => {
+      if (isAuthenticated && user) {
+        console.log('Usuario autenticado - UID actual:', user.uid);
+        
+        // También obtener y mostrar el UID guardado en AsyncStorage
+        const savedUID = await getUserUID();
+        if (savedUID) {
+          console.log('UID recuperado de AsyncStorage:', savedUID);
+        }
+      }
+    };
+
+    showUserUID();
+  }, [isAuthenticated, user, getUserUID]);
   
   return (
     <>

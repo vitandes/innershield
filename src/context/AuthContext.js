@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { Platform } from "react-native";
 import firebase from "@react-native-firebase/app";
 import auth from "@react-native-firebase/auth";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AuthContext = createContext();
 
@@ -85,10 +86,56 @@ export const AuthProvider = ({ children }) => {
       "Auth state changed:",
       user ? "User logged in" : "User logged out"
     );
+    
+    // Guardar UID en AsyncStorage cuando el usuario se loggea
+    if (user && user.uid) {
+      saveUserUID(user.uid);
+    } else {
+      // Opcional: limpiar UID cuando el usuario se desloggea
+      clearUserUID();
+    }
+    
     setUser(user);
     if (initializing) setInitializing(false);
     setIsLoading(false);
   }
+
+  // Función para guardar el UID en AsyncStorage
+  const saveUserUID = async (uid) => {
+    try {
+      await AsyncStorage.setItem('userUID', uid);
+      console.log('UID guardado en AsyncStorage:', uid);
+    } catch (error) {
+      console.error('Error guardando UID en AsyncStorage:', error);
+    }
+  };
+
+  // Función para limpiar el UID del AsyncStorage
+  const clearUserUID = async () => {
+    try {
+      await AsyncStorage.removeItem('userUID');
+      console.log('UID eliminado del AsyncStorage');
+    } catch (error) {
+      console.error('Error eliminando UID del AsyncStorage:', error);
+    }
+  };
+
+  // Función para obtener el UID guardado
+  const getUserUID = async () => {
+    try {
+      const uid = await AsyncStorage.getItem('userUID');
+      if (uid) {
+        console.log('UID recuperado del AsyncStorage:', uid);
+        return uid;
+      } else {
+        console.log('No hay UID guardado en AsyncStorage');
+        return null;
+      }
+    } catch (error) {
+      console.error('Error obteniendo UID del AsyncStorage:', error);
+      return null;
+    }
+  };
 
   // Set up the authentication listener after Firebase has been initialized
   useEffect(() => {
@@ -202,6 +249,7 @@ export const AuthProvider = ({ children }) => {
     deleteAccount,
     signInWithApple,
     isAuthenticated: !!user,
+    getUserUID, // Exponemos la función para obtener el UID
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
