@@ -6,9 +6,14 @@ import AppNavigator from './src/navigation/AppNavigator';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { AuthProvider } from './src/context/AuthContext';
 import { dailyMessages } from './src/data/dailyMessages';
+import firebase from '@react-native-firebase/app';
 
-// Inicializar Firebase
-import '@react-native-firebase/app';
+// Inicializar Firebase si aún no está inicializado
+if (!firebase.apps.length) {
+  firebase.initializeApp();
+}
+
+
 
 // Configurar el handler de notificaciones
 Notifications.setNotificationHandler({
