@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, TextInput, Image, StatusBar, ScrollView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, TextInput, Image, StatusBar, ScrollView, Dimensions, SafeAreaView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
@@ -7,8 +7,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { dailyMessages } from '../data/dailyMessages';
 import { colors } from '../theme/colors';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -59,6 +60,7 @@ const cancelAllNotifications = async () => {
 
 const ProfileScreen = ({ navigation }) => {
   const { signOut, deleteAccount } = useAuth();
+  const { colors: themeColors } = useTheme();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [userName, setUserName] = useState('Usuario');
   const [isEditingName, setIsEditingName] = useState(false);
@@ -122,21 +124,33 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   const handleNotificationsToggle = async (value) => {
-    setNotificationsEnabled(value);
-    
-    // Guardar el estado en AsyncStorage
     try {
+      setNotificationsEnabled(value);
+      
+      // Guardar el estado en AsyncStorage
       await AsyncStorage.setItem('notificationsEnabled', JSON.stringify(value));
+      
+      if (value) {
+        // Solicitar permisos si no los tenemos
+        const { status } = await Notifications.requestPermissionsAsync();
+        if (status === 'granted') {
+          await scheduleNextDayNotification();
+          Alert.alert('Notificaciones Activadas', 'Recibirás un mensaje diario a las 8:00 AM.');
+        } else {
+          // Si no se conceden permisos, revertir el estado
+          setNotificationsEnabled(false);
+          await AsyncStorage.setItem('notificationsEnabled', JSON.stringify(false));
+          Alert.alert('Permisos Requeridos', 'Para recibir notificaciones, debes permitir el acceso en la configuración de tu dispositivo.');
+        }
+      } else {
+        await cancelAllNotifications();
+        Alert.alert('Notificaciones Desactivadas', 'Ya no recibirás mensajes diarios.');
+      }
     } catch (error) {
-      console.error('Error saving notification settings:', error);
-    }
-    
-    if (value) {
-      await scheduleNextDayNotification();
-      Alert.alert('Notifications Enabled', 'You will receive a daily message at 8:00 AM.');
-    } else {
-      await cancelAllNotifications();
-      Alert.alert('Notifications Disabled', 'You will no longer receive daily messages.');
+      console.error('Error toggling notifications:', error);
+      // Revertir el estado en caso de error
+      setNotificationsEnabled(!value);
+      Alert.alert('Error', 'No se pudo cambiar la configuración de notificaciones.');
     }
   };
 
@@ -163,28 +177,50 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent={true} />
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="black" />
+    <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]}>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent={false} />
+      
+      {/* Header */}
+      <View style={[styles.header, { backgroundColor: themeColors.surface }]}>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color={themeColors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profile</Text>
+        <Text style={[styles.headerTitle, { color: themeColors.text }]}>Perfil</Text>
+        <View style={styles.headerSpacer} />
       </View>
-      <View style={styles.content}>
-        <View style={styles.profileInfo}>
-          <Image 
-            source={require('../../assets/icono-profile.png')} 
-            style={styles.profileIcon}
-            resizeMode="contain"
-          />
+
+      <ScrollView 
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Profile Section */}
+        <View style={[styles.profileSection, { backgroundColor: themeColors.surface }]}>
+          <View style={styles.profileImageContainer}>
+            <View style={[styles.profileImageBackground, { backgroundColor: themeColors.cardBackground }]}>
+              <Image 
+                source={require('../../assets/icono-profile.png')} 
+                style={styles.profileIcon}
+                resizeMode="contain"
+              />
+            </View>
+          </View>
+          
           {isEditingName ? (
             <View style={styles.editNameContainer}>
               <TextInput
-                style={styles.nameInput}
+                style={[styles.nameInput, { 
+                  backgroundColor: themeColors.cardBackground,
+                  color: themeColors.text,
+                  borderColor: themeColors.border
+                }]}
                 value={tempName}
                 onChangeText={setTempName}
                 placeholder="Ingresa tu nombre"
+                placeholderTextColor={themeColors.textSecondary}
                 autoFocus={true}
                 maxLength={30}
               />
@@ -199,44 +235,73 @@ const ProfileScreen = ({ navigation }) => {
             </View>
           ) : (
             <View style={styles.nameContainer}>
-              <Text style={styles.profileName}>{userName}</Text>
-              <TouchableOpacity style={styles.editButton} onPress={handleEditName}>
-                <Ionicons name="pencil" size={16} color="#667eea" />
+              <Text style={[styles.profileName, { color: themeColors.text }]}>{userName}</Text>
+              <TouchableOpacity style={[styles.editButton, { backgroundColor: themeColors.cardBackground }]} onPress={handleEditName}>
+                <Ionicons name="pencil" size={16} color={themeColors.primary} />
               </TouchableOpacity>
             </View>
           )}
+          
+          <Text style={[styles.profileSubtitle, { color: themeColors.textSecondary }]}>
+            Miembro de InnerShield
+          </Text>
         </View>
 
-        <View style={styles.menu}>
-          <View style={styles.menuItem}>
-            <Text style={styles.menuItemText}>Enable Notifications</Text>
-            <Switch
-              value={notificationsEnabled}
-              onValueChange={handleNotificationsToggle}
-            />
+        {/* Menu Section */}
+        <View style={styles.menuSection}>
+          <View style={[styles.menuCard, { backgroundColor: themeColors.surface }]}>
+            <View style={styles.menuItem}>
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.menuIcon, { backgroundColor: themeColors.primary + '20' }]}>
+                  <Ionicons name="notifications" size={20} color={themeColors.primary} />
+                </View>
+                <Text style={[styles.menuItemText, { color: themeColors.text }]}>Notificaciones</Text>
+              </View>
+              <View style={styles.switchContainer}>
+                <Switch
+                  value={notificationsEnabled}
+                  onValueChange={handleNotificationsToggle}
+                  trackColor={{ false: themeColors.border, true: themeColors.primary + '40' }}
+                  thumbColor={notificationsEnabled ? themeColors.primary : themeColors.textSecondary}
+                />
+              </View>
+            </View>
+            
+            <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
+            
+            <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.menuIcon, { backgroundColor: '#FF6B6B20' }]}>
+                  <Ionicons name="log-out" size={20} color="#FF6B6B" />
+                </View>
+                <Text style={[styles.menuItemText, { color: themeColors.text }]}>Cerrar Sesión</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={themeColors.textSecondary} />
+            </TouchableOpacity>
+            
+            <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
+            
+            <TouchableOpacity style={styles.menuItem} onPress={handleDeleteAccount}>
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.menuIcon, { backgroundColor: '#FF334420' }]}>
+                  <Ionicons name="trash" size={20} color="#FF3344" />
+                </View>
+                <Text style={[styles.menuItemText, styles.deleteText]}>Eliminar Cuenta</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={themeColors.textSecondary} />
+            </TouchableOpacity>
           </View>
-
-          <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
-            <Text style={styles.menuItemText}>Logout</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem} onPress={handleDeleteAccount}>
-            <Text style={[styles.menuItemText, styles.deleteText]}>Delete Account</Text>
-          </TouchableOpacity>
         </View>
-      </View>
-    </View>
+        
+        <View style={styles.bottomSpacing} />
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral.lightestGray,
-  },
-  headerGradient: {
-    paddingTop: StatusBar.currentHeight || 44,
-    paddingBottom: 30,
   },
   header: {
     flexDirection: 'row',
@@ -244,45 +309,65 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
   },
   backButton: {
     padding: 8,
     borderRadius: 20,
-    backgroundColor: colors.alpha.white20,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: colors.neutral.white,
     flex: 1,
     textAlign: 'center',
   },
   headerSpacer: {
     width: 40,
   },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 20,
+  },
   profileSection: {
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingVertical: 30,
+    marginHorizontal: 20,
+    marginTop: 20,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   profileImageContainer: {
-    marginBottom: 15,
+    marginBottom: 20,
   },
   profileImageBackground: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: colors.alpha.white20,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: colors.neutral.black,
+    shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 4,
     },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 6,
+  },
+  profileIcon: {
+    width: 80,
+    height: 80,
   },
   nameContainer: {
     flexDirection: 'row',
@@ -291,19 +376,16 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   profileName: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: colors.neutral.white,
     marginRight: 10,
   },
   editButton: {
     padding: 8,
     borderRadius: 15,
-    backgroundColor: colors.alpha.white20,
   },
   profileSubtitle: {
     fontSize: 16,
-    color: colors.alpha.white80,
     textAlign: 'center',
   },
   editNameContainer: {
@@ -312,8 +394,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   nameInput: {
-    borderWidth: 2,
-    borderColor: colors.alpha.white30,
+    borderWidth: 1,
     borderRadius: 15,
     paddingHorizontal: 20,
     paddingVertical: 12,
@@ -321,18 +402,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 15,
     width: '80%',
-    backgroundColor: colors.alpha.white20,
-    color: colors.neutral.white,
   },
   editButtons: {
     flexDirection: 'row',
     gap: 15,
   },
   saveButton: {
-    backgroundColor: colors.secondary.mint,
+    backgroundColor: '#4CAF50',
     borderRadius: 25,
     padding: 12,
-    shadowColor: colors.neutral.black,
+    shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
@@ -342,10 +421,10 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   cancelButton: {
-    backgroundColor: colors.primary.red,
+    backgroundColor: '#FF6B6B',
     borderRadius: 25,
     padding: 12,
-    shadowColor: colors.neutral.black,
+    shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
@@ -354,24 +433,13 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  content: {
-    flex: 1,
+  menuSection: {
     paddingHorizontal: 20,
-  },
-  section: {
-    marginBottom: 25,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.neutral.darkGray,
-    marginBottom: 12,
-    marginLeft: 5,
+    marginTop: 20,
   },
   menuCard: {
-    backgroundColor: colors.neutral.white,
     borderRadius: 16,
-    shadowColor: colors.neutral.black,
+    shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
@@ -391,6 +459,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    marginRight: 10,
+  },
+  switchContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 50,
+    marginTop: -20,
+    height: 40,
   },
   menuIcon: {
     width: 40,
@@ -402,15 +478,13 @@ const styles = StyleSheet.create({
   },
   menuItemText: {
     fontSize: 16,
-    color: colors.neutral.darkGray,
     fontWeight: '500',
   },
   deleteText: {
-    color: colors.primary.red,
+    color: '#FF3344',
   },
   divider: {
     height: 1,
-    backgroundColor: colors.neutral.lightGray,
     marginHorizontal: 20,
   },
   bottomSpacing: {

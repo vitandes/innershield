@@ -23,6 +23,7 @@ import SleepMelodiesScreen from '../screens/SleepMelodiesScreen';
 
 // Context
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 // Colors
 import { colors } from '../theme/colors';
@@ -128,6 +129,21 @@ export default function AppNavigator() {
             <Stack.Screen 
               name="SleepMelodies" 
               component={SleepMelodiesScreen} 
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="Profile" 
+              component={ProfileScreen} 
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="SOS" 
+              component={SOSScreen} 
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="Journal" 
+              component={JournalScreen} 
               options={{ headerShown: false }}
             />
           </>

@@ -232,11 +232,11 @@ const OnboardingScreen = ({ navigation }) => {
       await AsyncStorage.setItem('onboardingCompleted', 'true');
       await AsyncStorage.setItem('onboardingData', JSON.stringify(onboardingData));
       
-      // Navegar a la pantalla de login
-      navigation.replace('Login');
+      // Navegar directamente al Home (Main) en lugar de Login
+      navigation.replace('Main');
     } catch (error) {
       console.error('Error saving onboarding data:', error);
-      navigation.replace('Login');
+      navigation.replace('Main');
     }
   };
 

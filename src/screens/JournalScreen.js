@@ -8,6 +8,9 @@ import {
   SafeAreaView,
   TextInput,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,6 +23,7 @@ const JournalScreen = ({ navigation }) => {
   const [currentEntry, setCurrentEntry] = useState('');
   const [selectedMood, setSelectedMood] = useState(null);
   const [journalEntries, setJournalEntries] = useState([]);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   // Cargar entradas guardadas al iniciar
   useEffect(() => {
@@ -35,6 +39,23 @@ const JournalScreen = ({ navigation }) => {
     };
     
     loadEntries();
+  }, []);
+
+  // Keyboard listeners
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      () => setKeyboardVisible(true)
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => setKeyboardVisible(false)
+    );
+
+    return () => {
+      keyboardDidHideListener.remove();
+      keyboardDidShowListener.remove();
+    };
   }, []);
 
   const moods = [
@@ -162,7 +183,18 @@ const JournalScreen = ({ navigation }) => {
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <KeyboardAvoidingView 
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
+        <ScrollView 
+          contentContainerStyle={[
+            styles.scrollContent,
+            keyboardVisible && styles.scrollContentWithKeyboard
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
         {/* Welcome Section */}
         <View style={styles.welcomeSection}>
           <LinearGradient colors={['#F3E5F5', '#E1BEE7']} style={styles.welcomeCard}>
@@ -263,13 +295,17 @@ const JournalScreen = ({ navigation }) => {
             ))}
           </View>
         )}
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
 
 const getStyles = (colors) => StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  keyboardAvoidingView: {
     flex: 1,
   },
   header: {
@@ -293,6 +329,9 @@ const getStyles = (colors) => StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 30,
+  },
+  scrollContentWithKeyboard: {
+    paddingBottom: 300, // Large bottom padding when keyboard is visible
   },
   welcomeSection: {
     padding: 20,
