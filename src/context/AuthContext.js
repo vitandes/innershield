@@ -364,7 +364,20 @@ export const AuthProvider = ({ children }) => {
   const signOut = async () => {
     try {
       setIsLoading(true);
+      
+      // Resetear el flujo de onboarding para que vaya al onboarding después del logout
+      console.log('🔄 Reseteando flujo de onboarding para logout...');
+      await AsyncStorage.removeItem('hasSeenWelcome');
+      await AsyncStorage.removeItem('hasSeenOnboarding');
+      await AsyncStorage.removeItem('hasSeenPaywall');
+      console.log('✅ Flujo de onboarding reseteado para logout');
+      
+      // Primero hacer logout de Firebase para que el estado del usuario cambie
       await auth().signOut();
+      
+      // Pequeña pausa para asegurar que el estado se propague
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
     } catch (error) {
       console.error("Error signing out:", error);
     } finally {

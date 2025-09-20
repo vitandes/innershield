@@ -116,12 +116,18 @@ export default function AppNavigator() {
           await AsyncStorage.removeItem('hasSeenOnboarding');
           await AsyncStorage.removeItem('hasSeenPaywall');
           
-          // Actualizar estados locales
+          // Actualizar estados locales inmediatamente
           setHasSeenWelcome(false);
           setHasSeenOnboarding(false);
           setHasSeenPaywall(false);
           
           console.log('✅ Flujo de onboarding reseteado completamente');
+          
+          // Forzar re-evaluación de la pantalla inicial
+          setTimeout(() => {
+            console.log('🔄 Forzando re-evaluación de pantalla inicial...');
+          }, 50);
+          
         } catch (error) {
           console.error('❌ Error reseteando flujo de onboarding:', error);
         }
