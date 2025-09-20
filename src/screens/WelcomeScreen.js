@@ -28,6 +28,7 @@ const WelcomeScreen = ({ navigation }) => {
     setIsLoading(true);
     try {
       await AsyncStorage.setItem('userName', name.trim());
+      await AsyncStorage.setItem('hasSeenWelcome', 'true');
       navigation.replace('Onboarding');
     } catch (error) {
       console.error('Error saving name:', error);

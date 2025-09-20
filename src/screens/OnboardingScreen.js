@@ -230,13 +230,14 @@ const OnboardingScreen = ({ navigation }) => {
       };
 
       await AsyncStorage.setItem('onboardingCompleted', 'true');
+      await AsyncStorage.setItem('hasSeenOnboarding', 'true');
       await AsyncStorage.setItem('onboardingData', JSON.stringify(onboardingData));
       
-      // Navegar directamente al Home (Main) en lugar de Login
-      navigation.replace('Main');
+      // Navegar al Paywall después del onboarding
+      navigation.replace('Paywall');
     } catch (error) {
       console.error('Error saving onboarding data:', error);
-      navigation.replace('Main');
+      navigation.replace('Paywall');
     }
   };
 

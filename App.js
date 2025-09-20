@@ -5,7 +5,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import AppNavigator from './src/navigation/AppNavigator';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
+import { SubscriptionProvider } from './src/context/SubscriptionContext';
 import { dailyMessages } from './src/data/dailyMessages';
+import { initializeRevenueCat } from './src/config/revenueCatConfig';
 
 
 
@@ -154,7 +156,19 @@ function AppContent() {
   useEffect(() => {
     // Inicializar el sistema de notificaciones automáticas
     initializeAutoNotifications();
-  }, []);
+    
+    // Inicializar RevenueCat
+    const initRevenueCat = async () => {
+      try {
+        const userUID = isAuthenticated && user ? user.uid : null;
+        await initializeRevenueCat(userUID);
+      } catch (error) {
+        console.error('Error initializing RevenueCat:', error);
+      }
+    };
+    
+    initRevenueCat();
+  }, [isAuthenticated, user]);
 
   // Mostrar UID en console.log cuando el usuario esté loggeado
   useEffect(() => {
@@ -185,7 +199,9 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AppContent />
+        <SubscriptionProvider>
+          <AppContent />
+        </SubscriptionProvider>
       </AuthProvider>
     </ThemeProvider>
   );
