@@ -105,8 +105,34 @@ export default function AppNavigator() {
     checkOnboardingFlow();
   }, []);
 
-  // Función para determinar la pantalla inicial
-  const getInitialScreen = () => {
+  // Resetear el flujo de onboarding cuando el usuario hace logout
+  useEffect(() => {
+    const resetOnboardingOnLogout = async () => {
+      if (!user) {
+        console.log('🔄 Usuario deslogueado, reseteando flujo de onboarding...');
+        try {
+          // Limpiar todos los estados de onboarding para forzar el flujo completo
+          await AsyncStorage.removeItem('hasSeenWelcome');
+          await AsyncStorage.removeItem('hasSeenOnboarding');
+          await AsyncStorage.removeItem('hasSeenPaywall');
+          
+          // Actualizar estados locales
+          setHasSeenWelcome(false);
+          setHasSeenOnboarding(false);
+          setHasSeenPaywall(false);
+          
+          console.log('✅ Flujo de onboarding reseteado completamente');
+        } catch (error) {
+          console.error('❌ Error reseteando flujo de onboarding:', error);
+        }
+      }
+    };
+
+    resetOnboardingOnLogout();
+  }, [user]); // Se ejecuta cuando cambia el estado del usuario
+
+  // Función para determinar la pantalla inicial (memoizada para evitar re-renders)
+  const getInitialScreen = React.useMemo(() => {
     console.log('🧭 Determinando pantalla inicial...');
     console.log('📊 Estados actuales:', {
       user: !!user,
@@ -147,7 +173,7 @@ export default function AppNavigator() {
       // Si tiene suscripción activa, ir al Main
       return 'Main';
     }
-  };
+  }, [user, hasActiveSubscription, hasSeenWelcome, hasSeenOnboarding, hasSeenPaywall]);
   
   // Mostrar loading mientras se inicializa la autenticación o se verifica la suscripción
   if (initializing || isLoading || subscriptionLoading || isCheckingFlow) {
@@ -161,7 +187,7 @@ export default function AppNavigator() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName={getInitialScreen()}
+        initialRouteName={getInitialScreen}
         screenOptions={{
           headerShown: false,
         }}>

@@ -154,21 +154,21 @@ function AppContent() {
   const { user, getUserUID, isAuthenticated } = useAuth();
   
   useEffect(() => {
-    // Inicializar el sistema de notificaciones automáticas
+    // Inicializar el sistema de notificaciones automáticas solo una vez
     initializeAutoNotifications();
     
-    // Inicializar RevenueCat
+    // Inicializar RevenueCat solo una vez al montar el componente
     const initRevenueCat = async () => {
       try {
-        const userUID = isAuthenticated && user ? user.uid : null;
-        await initializeRevenueCat(userUID);
+        // No pasar userUID aquí, se manejará en AuthContext
+        await initializeRevenueCat();
       } catch (error) {
         console.error('Error initializing RevenueCat:', error);
       }
     };
     
     initRevenueCat();
-  }, [isAuthenticated, user]);
+  }, []); // Solo ejecutar una vez al montar
 
   // Mostrar UID en console.log cuando el usuario esté loggeado
   useEffect(() => {

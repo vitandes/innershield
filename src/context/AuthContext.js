@@ -117,9 +117,14 @@ export const AuthProvider = ({ children }) => {
         isAnonymous: customerInfo.originalAppUserId.startsWith('$RCAnonymousID')
       });
       
-      if (!customerInfo.originalAppUserId.startsWith('$RCAnonymousID')) {
+      if (!customerInfo.originalAppUserId.startsWith('$RCAnonymousID') && customerInfo.originalAppUserId === uid) {
         console.log('✅ Usuario ya está vinculado con ID:', customerInfo.originalAppUserId);
-      } else {
+        // Verificar suscripción inmediatamente si ya está vinculado
+        await checkSubscriptionStatus();
+        return;
+      }
+      
+      if (customerInfo.originalAppUserId.startsWith('$RCAnonymousID')) {
         console.log('🔄 Vinculando usuario anónimo...');
         await Purchases.logIn(uid);
         console.log('✅ Usuario vinculado exitosamente con RevenueCat');
@@ -129,14 +134,14 @@ export const AuthProvider = ({ children }) => {
       console.log('🔄 Verificando suscripción después de vincular...');
       setTimeout(async () => {
         await checkSubscriptionStatus();
-      }, 500);
+      }, 1000); // Reducido a 1 segundo
       
     } catch (error) {
       console.error('❌ Error vinculando usuario con RevenueCat:', error);
       // Intentar verificar suscripción de todas formas
       setTimeout(async () => {
         await checkSubscriptionStatus();
-      }, 500);
+      }, 1000);
     }
   };
 
@@ -271,11 +276,13 @@ export const AuthProvider = ({ children }) => {
         const isSync = await verifyUIDSync();
         console.log('🔄 Resultado de sincronización:', isSync ? 'Sincronizado' : 'Desincronizado');
         
-        // Esperar más tiempo para asegurar que RevenueCat se haya vinculado completamente
-        setTimeout(async () => {
-          console.log('⏰ Ejecutando verificación de suscripción después de 2 segundos...');
-          await checkSubscriptionStatus();
-        }, 2000); // Aumentado a 2 segundos
+        // Solo ejecutar verificación adicional si no está sincronizado
+        if (!isSync) {
+          setTimeout(async () => {
+            console.log('⏰ Ejecutando verificación de suscripción después de re-sincronización...');
+            await checkSubscriptionStatus();
+          }, 1500); // Reducido a 1.5 segundos
+        }
       } else if (!user) {
         console.log('👤 No hay usuario, reseteando estado de suscripción');
         // Si no hay usuario, resetear estado de suscripción
