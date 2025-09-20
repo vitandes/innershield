@@ -78,7 +78,7 @@ function TabNavigator() {
 }
 
 export default function AppNavigator() {
-  const { user, isLoading, initializing } = useAuth();
+  const { user, isLoading, initializing, hasActiveSubscription, subscriptionLoading } = useAuth();
   const [hasSeenWelcome, setHasSeenWelcome] = useState(false);
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
   const [hasSeenPaywall, setHasSeenPaywall] = useState(false);
@@ -107,20 +107,50 @@ export default function AppNavigator() {
 
   // Función para determinar la pantalla inicial
   const getInitialScreen = () => {
+    console.log('🧭 Determinando pantalla inicial...');
+    console.log('📊 Estados actuales:', {
+      user: !!user,
+      userId: user?.uid,
+      hasActiveSubscription,
+      subscriptionLoading,
+      hasSeenWelcome,
+      hasSeenOnboarding,
+      hasSeenPaywall
+    });
+
     if (!user) {
+      console.log('❌ No hay usuario autenticado');
       // Si no hay usuario, mostrar el flujo completo desde Welcome
-      if (!hasSeenWelcome) return 'Welcome';
-      if (!hasSeenOnboarding) return 'Onboarding';
-      if (!hasSeenPaywall) return 'Paywall';
+      if (!hasSeenWelcome) {
+        console.log('➡️ Dirigiendo a Welcome');
+        return 'Welcome';
+      }
+      if (!hasSeenOnboarding) {
+        console.log('➡️ Dirigiendo a Onboarding');
+        return 'Onboarding';
+      }
+      if (!hasSeenPaywall) {
+        console.log('➡️ Dirigiendo a Paywall');
+        return 'Paywall';
+      }
+      console.log('➡️ Dirigiendo a Login');
       return 'Login';
     } else {
-      // Si hay usuario autenticado, ir directamente al Main
+      console.log('✅ Usuario autenticado encontrado:', user.uid);
+      // Si hay usuario autenticado, verificar suscripción
+      if (!hasActiveSubscription) {
+        console.log('❌ Usuario NO tiene suscripción activa - Dirigiendo a Paywall');
+        // Si no tiene suscripción activa, mostrar paywall
+        return 'Paywall';
+      }
+      console.log('🎉 Usuario tiene suscripción activa - Dirigiendo a Main');
+      // Si tiene suscripción activa, ir al Main
       return 'Main';
     }
   };
   
-  // Mostrar loading mientras se inicializa la autenticación o se verifica el flujo
-  if (initializing || isLoading || isCheckingFlow) {
+  // Mostrar loading mientras se inicializa la autenticación o se verifica la suscripción
+  if (initializing || isLoading || subscriptionLoading || isCheckingFlow) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }}>
         <ActivityIndicator size="large" color={colors.primary.purple} />

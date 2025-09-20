@@ -3,6 +3,7 @@ import { Platform } from "react-native";
 import firebase from "@react-native-firebase/app";
 import auth from "@react-native-firebase/auth";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Purchases from 'react-native-purchases';
 
 const AuthContext = createContext();
 
@@ -19,6 +20,8 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [initializing, setInitializing] = useState(true);
   const [firebaseInitialized, setFirebaseInitialized] = useState(false);
+  const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(true);
 
   useEffect(() => {
     const initializeFirebase = () => {
@@ -90,6 +93,8 @@ export const AuthProvider = ({ children }) => {
     // Guardar UID en AsyncStorage cuando el usuario se loggea
     if (user && user.uid) {
       saveUserUID(user.uid);
+      // Vincular usuario anónimo con RevenueCat
+      linkUserWithRevenueCat(user.uid);
     } else {
       // Opcional: limpiar UID cuando el usuario se desloggea
       clearUserUID();
@@ -99,6 +104,188 @@ export const AuthProvider = ({ children }) => {
     if (initializing) setInitializing(false);
     setIsLoading(false);
   }
+
+  // Función para vincular usuario anónimo con RevenueCat
+  const linkUserWithRevenueCat = async (uid) => {
+    try {
+      console.log('🔗 Vinculando usuario con RevenueCat:', uid);
+      
+      // Primero verificar si ya está vinculado
+      const customerInfo = await Purchases.getCustomerInfo();
+      console.log('📋 CustomerInfo antes de vincular:', {
+        originalAppUserId: customerInfo.originalAppUserId,
+        isAnonymous: customerInfo.originalAppUserId.startsWith('$RCAnonymousID')
+      });
+      
+      if (!customerInfo.originalAppUserId.startsWith('$RCAnonymousID')) {
+        console.log('✅ Usuario ya está vinculado con ID:', customerInfo.originalAppUserId);
+      } else {
+        console.log('🔄 Vinculando usuario anónimo...');
+        await Purchases.logIn(uid);
+        console.log('✅ Usuario vinculado exitosamente con RevenueCat');
+      }
+      
+      // Verificar suscripción después de vincular con un pequeño delay
+      console.log('🔄 Verificando suscripción después de vincular...');
+      setTimeout(async () => {
+        await checkSubscriptionStatus();
+      }, 500);
+      
+    } catch (error) {
+      console.error('❌ Error vinculando usuario con RevenueCat:', error);
+      // Intentar verificar suscripción de todas formas
+      setTimeout(async () => {
+        await checkSubscriptionStatus();
+      }, 500);
+    }
+  };
+
+  // Función para verificar el estado de suscripción
+  const checkSubscriptionStatus = async () => {
+    try {
+      console.log('🔍 Iniciando verificación de suscripción...');
+      setSubscriptionLoading(true);
+      
+      // Obtener UID de AsyncStorage
+      const storedUid = await AsyncStorage.getItem('userUID');
+      console.log('📱 UID en AsyncStorage:', storedUid);
+      
+      // Obtener información del cliente de RevenueCat
+      const customerInfo = await Purchases.getCustomerInfo();
+      console.log('💳 CustomerInfo completo:', {
+        originalAppUserId: customerInfo.originalAppUserId,
+        activeSubscriptions: customerInfo.activeSubscriptions,
+        allPurchasedProductIdentifiers: customerInfo.allPurchasedProductIdentifiers,
+        entitlements: Object.keys(customerInfo.entitlements.all),
+        activeEntitlements: Object.keys(customerInfo.entitlements.active)
+      });
+      
+      // Verificar sincronización de UIDs
+      console.log('🔄 Comparando UIDs:');
+      console.log('  - AsyncStorage UID:', storedUid);
+      console.log('  - RevenueCat UID:', customerInfo.originalAppUserId);
+      console.log('  - ¿Son iguales?:', storedUid === customerInfo.originalAppUserId);
+      console.log('  - ¿Es anónimo?:', customerInfo.originalAppUserId.startsWith('$RCAnonymousID'));
+      
+      // Verificar suscripciones activas
+      const hasActiveSubscriptions = customerInfo.activeSubscriptions.length > 0;
+      const hasActiveEntitlements = Object.keys(customerInfo.entitlements.active).length > 0;
+      
+      console.log('📊 Estado de suscripción:');
+      console.log('  - Suscripciones activas:', customerInfo.activeSubscriptions);
+      console.log('  - Entitlements activos:', Object.keys(customerInfo.entitlements.active));
+      console.log('  - ¿Tiene suscripciones activas?:', hasActiveSubscriptions);
+      console.log('  - ¿Tiene entitlements activos?:', hasActiveEntitlements);
+      
+      const isSubscribed = hasActiveSubscriptions || hasActiveEntitlements;
+      
+      if (isSubscribed) {
+        console.log('✅ Usuario TIENE suscripción activa');
+        setHasActiveSubscription(true);
+      } else {
+        console.log('❌ Usuario NO tiene suscripción activa');
+        setHasActiveSubscription(false);
+      }
+      
+      setSubscriptionLoading(false);
+      console.log('🏁 Verificación de suscripción completada. Estado final:', isSubscribed);
+      
+    } catch (error) {
+      console.error('❌ Error verificando suscripción:', error);
+      setHasActiveSubscription(false);
+      setSubscriptionLoading(false);
+    }
+  };
+
+  // Verificar suscripción al inicializar la app
+  useEffect(() => {
+    const initializeSubscriptionCheck = async () => {
+      if (firebaseInitialized && Platform.OS !== 'web') {
+        await checkSubscriptionStatus();
+      } else {
+        setSubscriptionLoading(false);
+      }
+    };
+    
+    initializeSubscriptionCheck();
+  }, [firebaseInitialized]);
+
+  // Función para verificar y sincronizar UIDs
+  const verifyUIDSync = async () => {
+    try {
+      console.log('🔍 Verificando sincronización de UIDs...');
+      
+      // Obtener UID de AsyncStorage
+      const storedUid = await AsyncStorage.getItem('userUID');
+      
+      // Obtener UID de Firebase Auth
+      const firebaseUser = auth().currentUser;
+      const firebaseUid = firebaseUser?.uid;
+      
+      // Obtener UID de RevenueCat
+      const customerInfo = await Purchases.getCustomerInfo();
+      const revenueCatUid = customerInfo.originalAppUserId;
+      
+      console.log('🆔 Comparación de UIDs:');
+      console.log('  📱 AsyncStorage:', storedUid);
+      console.log('  🔥 Firebase Auth:', firebaseUid);
+      console.log('  💳 RevenueCat:', revenueCatUid);
+      
+      // Verificar consistencia
+      const asyncStorageMatch = storedUid === firebaseUid;
+      const revenueCatMatch = firebaseUid === revenueCatUid;
+      const allMatch = storedUid === firebaseUid && firebaseUid === revenueCatUid;
+      
+      console.log('✅ Verificación de consistencia:');
+      console.log('  - AsyncStorage ↔ Firebase:', asyncStorageMatch ? '✅' : '❌');
+      console.log('  - Firebase ↔ RevenueCat:', revenueCatMatch ? '✅' : '❌');
+      console.log('  - Todos sincronizados:', allMatch ? '✅' : '❌');
+      
+      if (!allMatch) {
+        console.log('⚠️ PROBLEMA DETECTADO: UIDs no están sincronizados');
+        
+        if (!revenueCatMatch && firebaseUid) {
+          console.log('🔄 Intentando re-sincronizar RevenueCat...');
+          await linkUserWithRevenueCat(firebaseUid);
+        }
+        
+        if (!asyncStorageMatch && firebaseUid) {
+          console.log('🔄 Actualizando AsyncStorage...');
+          await AsyncStorage.setItem('userUID', firebaseUid);
+        }
+      }
+      
+      return allMatch;
+    } catch (error) {
+      console.error('❌ Error verificando sincronización de UIDs:', error);
+      return false;
+    }
+  };
+  // Verificar suscripción cuando el usuario cambia (login/logout)
+  useEffect(() => {
+    const checkUserSubscription = async () => {
+      if (user && user.uid && Platform.OS !== 'web') {
+        console.log('👤 Usuario autenticado detectado, verificando sincronización y suscripción...');
+        
+        // Primero verificar sincronización de UIDs
+        const isSync = await verifyUIDSync();
+        console.log('🔄 Resultado de sincronización:', isSync ? 'Sincronizado' : 'Desincronizado');
+        
+        // Esperar más tiempo para asegurar que RevenueCat se haya vinculado completamente
+        setTimeout(async () => {
+          console.log('⏰ Ejecutando verificación de suscripción después de 2 segundos...');
+          await checkSubscriptionStatus();
+        }, 2000); // Aumentado a 2 segundos
+      } else if (!user) {
+        console.log('👤 No hay usuario, reseteando estado de suscripción');
+        // Si no hay usuario, resetear estado de suscripción
+        setHasActiveSubscription(false);
+        setSubscriptionLoading(false);
+      }
+    };
+
+    checkUserSubscription();
+  }, [user]); // Escucha cambios en el estado del usuario
 
   // Función para guardar el UID en AsyncStorage
   const saveUserUID = async (uid) => {
@@ -250,6 +437,10 @@ export const AuthProvider = ({ children }) => {
     signInWithApple,
     isAuthenticated: !!user,
     getUserUID, // Exponemos la función para obtener el UID
+    hasActiveSubscription,
+    subscriptionLoading,
+    checkSubscriptionStatus,
+    verifyUIDSync, // Exportar la función de verificación
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
