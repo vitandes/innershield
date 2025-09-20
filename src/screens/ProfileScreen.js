@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, TextInput, Image, StatusBar, ScrollView, Dimensions, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, TextInput, Image, StatusBar, ScrollView, Dimensions, SafeAreaView, Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
@@ -19,25 +19,25 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// Función para programar la notificación del día siguiente
+// Function to schedule next day notification
 const scheduleNextDayNotification = async () => {
   try {
-    // Verificar si estamos en una plataforma que soporta notificaciones
+    // Check if we're on a platform that supports notifications
     if (typeof window !== 'undefined') {
-      // Estamos en web, las notificaciones no están disponibles
+      // We're on web, notifications are not available
       console.log('Notifications not available on web platform');
       return;
     }
     
-    // Cancelar notificaciones existentes
+    // Cancel existing notifications
     await Notifications.cancelAllScheduledNotificationsAsync();
     
-    // Obtener el mensaje para mañana
+    // Get tomorrow's message
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(8, 0, 0, 0);
     
-    // Programar notificación para mañana a las 8 AM
+    // Schedule notification for tomorrow at 8 AM
     await Notifications.scheduleNotificationAsync({
       content: {
         title: "Message of the Day",
@@ -62,29 +62,32 @@ const ProfileScreen = ({ navigation }) => {
   const { signOut, deleteAccount } = useAuth();
   const { colors: themeColors } = useTheme();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [userName, setUserName] = useState('Usuario');
+  const [notificationPermissionStatus, setNotificationPermissionStatus] = useState('undetermined');
+  const [userName, setUserName] = useState('User');
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState('');
 
   useEffect(() => {
     const initializeProfile = async () => {
-      await Notifications.requestPermissionsAsync();
-      
       try {
-        // Cargar el nombre del usuario
+        // Check current notification permissions
+        const { status } = await Notifications.getPermissionsAsync();
+        setNotificationPermissionStatus(status);
+        
+        // Load user name
         const savedUserName = await AsyncStorage.getItem('userName');
         if (savedUserName !== null) {
           setUserName(savedUserName);
         }
         
-        // Cargar el estado de las notificaciones desde AsyncStorage
+        // Load notification state from AsyncStorage
         const savedNotificationState = await AsyncStorage.getItem('notificationsEnabled');
         if (savedNotificationState !== null) {
           const isEnabled = JSON.parse(savedNotificationState);
-          setNotificationsEnabled(isEnabled);
+          setNotificationsEnabled(isEnabled && status === 'granted');
           
-          // Si las notificaciones están habilitadas, asegurar que hay una programada
-          if (isEnabled) {
+          // If notifications are enabled and permissions granted, ensure there's a scheduled notification
+          if (isEnabled && status === 'granted') {
             await scheduleNextDayNotification();
           }
         }
@@ -103,7 +106,7 @@ const ProfileScreen = ({ navigation }) => {
 
   const handleSaveName = async () => {
     if (tempName.trim().length === 0) {
-      Alert.alert('Error', 'El nombre no puede estar vacío');
+      Alert.alert('Error', 'Name cannot be empty');
       return;
     }
 
@@ -111,10 +114,10 @@ const ProfileScreen = ({ navigation }) => {
       await AsyncStorage.setItem('userName', tempName.trim());
       setUserName(tempName.trim());
       setIsEditingName(false);
-      Alert.alert('Éxito', 'Nombre actualizado correctamente');
+      Alert.alert('Success', 'Name updated successfully');
     } catch (error) {
       console.error('Error saving user name:', error);
-      Alert.alert('Error', 'No se pudo guardar el nombre');
+      Alert.alert('Error', 'Could not save name');
     }
   };
 
@@ -123,55 +126,97 @@ const ProfileScreen = ({ navigation }) => {
     setTempName('');
   };
 
-  const handleNotificationsToggle = async (value) => {
+  const handleNotificationAuthorization = async () => {
     try {
-      setNotificationsEnabled(value);
+      const { status: currentStatus } = await Notifications.getPermissionsAsync();
       
-      // Guardar el estado en AsyncStorage
-      await AsyncStorage.setItem('notificationsEnabled', JSON.stringify(value));
-      
-      if (value) {
-        // Solicitar permisos si no los tenemos
-        const { status } = await Notifications.requestPermissionsAsync();
-        if (status === 'granted') {
+      if (currentStatus === 'granted') {
+        // If already granted, toggle the notification state
+        const newState = !notificationsEnabled;
+        setNotificationsEnabled(newState);
+        await AsyncStorage.setItem('notificationsEnabled', JSON.stringify(newState));
+        
+        if (newState) {
           await scheduleNextDayNotification();
-          Alert.alert('Notificaciones Activadas', 'Recibirás un mensaje diario a las 8:00 AM.');
+          Alert.alert('Notifications Enabled', 'You will receive daily messages at 8:00 AM.');
         } else {
-          // Si no se conceden permisos, revertir el estado
-          setNotificationsEnabled(false);
-          await AsyncStorage.setItem('notificationsEnabled', JSON.stringify(false));
-          Alert.alert('Permisos Requeridos', 'Para recibir notificaciones, debes permitir el acceso en la configuración de tu dispositivo.');
+          await cancelAllNotifications();
+          Alert.alert('Notifications Disabled', 'You will no longer receive daily messages.');
         }
+      } else if (currentStatus === 'denied') {
+        // If denied, show alert to go to settings
+        Alert.alert(
+          'Notifications Disabled',
+          'To receive daily messages, please enable notifications in your device settings.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'Open Settings', 
+              onPress: () => Linking.openSettings()
+            }
+          ]
+        );
       } else {
-        await cancelAllNotifications();
-        Alert.alert('Notificaciones Desactivadas', 'Ya no recibirás mensajes diarios.');
+        // If undetermined, request permissions
+        const { status: newStatus } = await Notifications.requestPermissionsAsync();
+        setNotificationPermissionStatus(newStatus);
+        
+        if (newStatus === 'granted') {
+          setNotificationsEnabled(true);
+          await AsyncStorage.setItem('notificationsEnabled', JSON.stringify(true));
+          await scheduleNextDayNotification();
+          Alert.alert('Notifications Enabled', 'You will receive daily messages at 8:00 AM.');
+        } else {
+          Alert.alert(
+            'Permission Required',
+            'To receive notifications, you need to allow access in your device settings.'
+          );
+        }
       }
     } catch (error) {
-      console.error('Error toggling notifications:', error);
-      // Revertir el estado en caso de error
-      setNotificationsEnabled(!value);
-      Alert.alert('Error', 'No se pudo cambiar la configuración de notificaciones.');
+      console.error('Error handling notification authorization:', error);
+      Alert.alert('Error', 'Could not change notification settings.');
+    }
+  };
+
+  const getNotificationButtonText = () => {
+    if (notificationPermissionStatus === 'granted') {
+      return notificationsEnabled ? 'Disable Notifications' : 'Enable Notifications';
+    } else if (notificationPermissionStatus === 'denied') {
+      return 'Open Settings';
+    } else {
+      return 'Allow Notifications';
+    }
+  };
+
+  const getNotificationButtonColor = () => {
+    if (notificationPermissionStatus === 'granted' && notificationsEnabled) {
+      return '#FF6B6B'; // Red for disable
+    } else if (notificationPermissionStatus === 'denied') {
+      return '#FFA726'; // Orange for settings
+    } else {
+      return themeColors.primary; // Primary color for enable/allow
     }
   };
 
   const handleLogout = () => {
     Alert.alert(
-      'Cerrar Sesión',
-      '¿Estás seguro de que quieres cerrar sesión?',
+      'Sign Out',
+      'Are you sure you want to sign out?',
       [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Cerrar Sesión', onPress: signOut }
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Sign Out', onPress: signOut }
       ]
     );
   };
 
   const handleDeleteAccount = () => {
     Alert.alert(
-      'Eliminar Cuenta',
-      '¿Estás seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer.',
+      'Delete Account',
+      'Are you sure you want to delete your account? This action cannot be undone.',
       [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Eliminar', style: 'destructive', onPress: deleteAccount }
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: deleteAccount }
       ]
     );
   };
@@ -188,7 +233,7 @@ const ProfileScreen = ({ navigation }) => {
         >
           <Ionicons name="arrow-back" size={24} color={themeColors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: themeColors.text }]}>Perfil</Text>
+        <Text style={[styles.headerTitle, { color: themeColors.text }]}>Profile</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -219,7 +264,7 @@ const ProfileScreen = ({ navigation }) => {
                 }]}
                 value={tempName}
                 onChangeText={setTempName}
-                placeholder="Ingresa tu nombre"
+                placeholder="Enter your name"
                 placeholderTextColor={themeColors.textSecondary}
                 autoFocus={true}
                 maxLength={30}
@@ -243,7 +288,7 @@ const ProfileScreen = ({ navigation }) => {
           )}
           
           <Text style={[styles.profileSubtitle, { color: themeColors.textSecondary }]}>
-            Miembro de InnerShield
+            InnerShield Member
           </Text>
         </View>
 
@@ -255,16 +300,27 @@ const ProfileScreen = ({ navigation }) => {
                 <View style={[styles.menuIcon, { backgroundColor: themeColors.primary + '20' }]}>
                   <Ionicons name="notifications" size={20} color={themeColors.primary} />
                 </View>
-                <Text style={[styles.menuItemText, { color: themeColors.text }]}>Notificaciones</Text>
+                <View style={styles.notificationTextContainer}>
+                  <Text style={[styles.menuItemText, { color: themeColors.text }]} numberOfLines={1}>
+                    Notifications
+                  </Text>
+                  <Text style={[styles.notificationSubtext, { color: themeColors.textSecondary }]} numberOfLines={1}>
+                    {notificationPermissionStatus === 'granted' && notificationsEnabled 
+                      ? 'Daily at 8:00 AM' 
+                      : notificationPermissionStatus === 'denied'
+                      ? 'Disabled in Settings'
+                      : 'Not Authorized'}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.switchContainer}>
-                <Switch
-                  value={notificationsEnabled}
-                  onValueChange={handleNotificationsToggle}
-                  trackColor={{ false: themeColors.border, true: themeColors.primary + '40' }}
-                  thumbColor={notificationsEnabled ? themeColors.primary : themeColors.textSecondary}
-                />
-              </View>
+              <TouchableOpacity 
+                style={[styles.notificationButton, { backgroundColor: getNotificationButtonColor() }]}
+                onPress={handleNotificationAuthorization}
+              >
+                <Text style={styles.notificationButtonText}>
+                  {getNotificationButtonText()}
+                </Text>
+              </TouchableOpacity>
             </View>
             
             <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
@@ -274,7 +330,7 @@ const ProfileScreen = ({ navigation }) => {
                 <View style={[styles.menuIcon, { backgroundColor: '#FF6B6B20' }]}>
                   <Ionicons name="log-out" size={20} color="#FF6B6B" />
                 </View>
-                <Text style={[styles.menuItemText, { color: themeColors.text }]}>Cerrar Sesión</Text>
+                <Text style={[styles.menuItemText, { color: themeColors.text }]}>Sign Out</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={themeColors.textSecondary} />
             </TouchableOpacity>
@@ -286,7 +342,7 @@ const ProfileScreen = ({ navigation }) => {
                 <View style={[styles.menuIcon, { backgroundColor: '#FF334420' }]}>
                   <Ionicons name="trash" size={20} color="#FF3344" />
                 </View>
-                <Text style={[styles.menuItemText, styles.deleteText]}>Eliminar Cuenta</Text>
+                <Text style={[styles.menuItemText, styles.deleteText]}>Delete Account</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={themeColors.textSecondary} />
             </TouchableOpacity>
@@ -461,12 +517,25 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 10,
   },
-  switchContainer: {
+  notificationTextContainer: {
+    flex: 1,
+    marginRight: 8,
+  },
+  notificationSubtext: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  notificationButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    minWidth: 120,
     alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 50,
-    marginTop: -20,
-    height: 40,
+  },
+  notificationButtonText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
   },
   menuIcon: {
     width: 40,
