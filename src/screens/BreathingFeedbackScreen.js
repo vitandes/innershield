@@ -113,19 +113,19 @@ const BreathingFeedbackScreen = ({ navigation, route }) => {
   }, []);
 
   const moodOptions = [
-    { id: 'much_better', emoji: '😌', label: 'Muy Relajado', color: '#4CAF50', value: 10 },
-    { id: 'better', emoji: '🙂', label: 'Más Calmado', color: '#8BC34A', value: 8 },
-    { id: 'same', emoji: '😐', label: 'Igual', color: '#FFC107', value: 5 },
-    { id: 'worse', emoji: '😔', label: 'Más Ansioso', color: '#FF9800', value: 3 },
-    { id: 'much_worse', emoji: '😰', label: 'Muy Ansioso', color: '#F44336', value: 1 },
+    { id: 'much_better', emoji: '😌', label: 'Very Relaxed', color: '#4CAF50', value: 10 },
+    { id: 'better', emoji: '🙂', label: 'More Calm', color: '#8BC34A', value: 8 },
+    { id: 'same', emoji: '😐', label: 'Same', color: '#FFC107', value: 5 },
+    { id: 'worse', emoji: '😔', label: 'More Anxious', color: '#FF9800', value: 3 },
+    { id: 'much_worse', emoji: '😰', label: 'Very Anxious', color: '#F44336', value: 1 },
   ];
 
   const helpfulnessOptions = [
-    { id: 'very_helpful', label: 'Muy Útil', stars: 5 },
-    { id: 'helpful', label: 'Útil', stars: 4 },
-    { id: 'somewhat', label: 'Algo Útil', stars: 3 },
-    { id: 'not_much', label: 'Poco Útil', stars: 2 },
-    { id: 'not_helpful', label: 'No Útil', stars: 1 },
+    { id: 'very_helpful', label: 'Very Helpful', stars: 5 },
+    { id: 'helpful', label: 'Helpful', stars: 4 },
+    { id: 'somewhat', label: 'Somewhat Helpful', stars: 3 },
+    { id: 'not_much', label: 'Not Very Helpful', stars: 2 },
+    { id: 'not_helpful', label: 'Not Helpful', stars: 1 },
   ];
 
   const formatDuration = (seconds) => {
@@ -213,8 +213,8 @@ const BreathingFeedbackScreen = ({ navigation, route }) => {
 
   const getTechniqueDisplayName = (tech) => {
     switch(tech) {
-      case '4-7-8': return 'Respiración 4-7-8';
-      case 'square': return 'Respiración Cuadrada';
+      case '4-7-8': return '4-7-8 Breathing';
+      case 'square': return 'Square Breathing';
       default: return tech;
     }
   };
@@ -239,20 +239,20 @@ const BreathingFeedbackScreen = ({ navigation, route }) => {
               <View style={styles.iconContainer}>
                 <Ionicons name="leaf" size={60} color="#4CAF50" />
               </View>
-              <Text style={styles.title}>Sesión Completada</Text>
+              <Text style={styles.title}>Session Completed</Text>
               <Text style={styles.subtitle}>
-                Has completado tu sesión de {getTechniqueDisplayName(technique)}
+                You have completed your {getTechniqueDisplayName(technique)} session
               </Text>
               <Text style={styles.duration}>
-                Duración: {formatDuration(duration)}
+                Duration: {formatDuration(duration)}
               </Text>
             </View>
 
             {/* Mood Assessment */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>¿Cómo te sientes ahora?</Text>
+              <Text style={styles.sectionTitle}>How do you feel now?</Text>
               <Text style={styles.sectionSubtitle}>
-                Comparado con cuando empezaste
+                Compared to when you started
               </Text>
               <View style={styles.moodGrid}>
                 {moodOptions.map((mood) => (
@@ -283,7 +283,7 @@ const BreathingFeedbackScreen = ({ navigation, route }) => {
 
             {/* Helpfulness Rating */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>¿Qué tan útil fue esta sesión?</Text>
+              <Text style={styles.sectionTitle}>How helpful was this session?</Text>
               <View style={styles.helpfulnessGrid}>
                 {helpfulnessOptions.map((option) => (
                   <TouchableOpacity
@@ -313,7 +313,7 @@ const BreathingFeedbackScreen = ({ navigation, route }) => {
             {/* Encouragement Message */}
             <View style={styles.encouragementSection}>
               <Text style={styles.encouragementText}>
-                "Cada respiración consciente es un paso hacia la calma interior. Estás construyendo resiliencia con cada práctica."
+                "Every mindful breath is a step towards inner calm. You are building resilience with each practice."
               </Text>
             </View>
 
@@ -331,7 +331,7 @@ const BreathingFeedbackScreen = ({ navigation, route }) => {
                   colors={['#BA68C8', '#AB47BC']}
                   style={styles.submitButtonGradient}
                 >
-                  <Text style={styles.submitButtonText}>Completar y Continuar</Text>
+                  <Text style={styles.submitButtonText}>Complete and Continue</Text>
                   <Ionicons name="arrow-forward" size={20} color="white" />
                 </LinearGradient>
               </TouchableOpacity>

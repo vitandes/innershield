@@ -111,13 +111,13 @@ const InsightsScreen = () => {
 
   const initializeMoodData = async () => {
     const defaultMoodData = [
-      { day: 'Mon', mood: 0, color: '#E0E0E0', completedMissions: 0 },
-      { day: 'Tue', mood: 0, color: '#E0E0E0', completedMissions: 0 },
-      { day: 'Wed', mood: 0, color: '#E0E0E0', completedMissions: 0 },
-      { day: 'Thu', mood: 0, color: '#E0E0E0', completedMissions: 0 },
-      { day: 'Fri', mood: 0, color: '#E0E0E0', completedMissions: 0 },
-      { day: 'Sat', mood: 0, color: '#E0E0E0', completedMissions: 0 },
-      { day: 'Sun', mood: 0, color: '#E0E0E0', completedMissions: 0 },
+      { day: 'Mon', mood: 0, color: '#F44336', completedMissions: 0 },
+      { day: 'Tue', mood: 0, color: '#F44336', completedMissions: 0 },
+      { day: 'Wed', mood: 0, color: '#F44336', completedMissions: 0 },
+      { day: 'Thu', mood: 0, color: '#F44336', completedMissions: 0 },
+      { day: 'Fri', mood: 0, color: '#F44336', completedMissions: 0 },
+      { day: 'Sat', mood: 0, color: '#F44336', completedMissions: 0 },
+      { day: 'Sun', mood: 0, color: '#F44336', completedMissions: 0 },
     ];
     const storedMoodData = await AsyncStorage.getItem('moodData');
     if (!storedMoodData) {
@@ -137,7 +137,7 @@ const InsightsScreen = () => {
       const currentDay = dayNames[today];
       
       const updatedMoodData = moodData.map(item => {
-        let color = '#E0E0E0'; // Default color (gris)
+        let color = '#F44336'; // Default color (rojo para visibilidad)
         let completedMissions = item.completedMissions || 0;
         
         // Si es el día actual, actualizar con las misiones completadas actuales
@@ -392,38 +392,7 @@ const InsightsScreen = () => {
         </View>
 
         {/* Mood Chart */}
-        <View style={styles.chartSection}>
-          <Text style={styles.sectionTitle}>Weekly Mood</Text>
-          <View style={styles.moodChartContainer}>
-            {moodData.map((data, index) => {
-              // Calcular altura basada en el color
-              let heightPercentage;
-              if (data.color === '#4CAF50') { // Verde
-                heightPercentage = 80;
-              } else if (data.color === '#FFC107') { // Amarillo
-                heightPercentage = 50;
-              } else { // Rojo
-                heightPercentage = 25;
-              }
-              
-              return (
-                <View key={index} style={styles.moodBarContainer}>
-                  <View
-                    style={[
-                      styles.moodBar,
-                      {
-                        height: `${heightPercentage}%`,
-                        backgroundColor: data.color,
-                      },
-                    ]}
-                  />
-                  <Text style={styles.moodBarLabel}>{data.day}</Text>
-                  <Text style={styles.moodBarValue}>{data.completedMissions || 0}</Text>
-                </View>
-              );
-            })}
-          </View>
-        </View>
+        
 
         {/* Insights */}
         <View style={styles.insightsSection}>
@@ -553,20 +522,23 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 20,
     height: 200,
-    elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   moodBarContainer: {
     alignItems: 'center',
     flex: 1,
+    minWidth: 30,
+    maxWidth: 50,
   },
   moodBar: {
     width: 20,
     borderRadius: 10,
     marginBottom: 8,
+    minHeight: 20,
   },
   moodBarLabel: {
     fontSize: 12,
