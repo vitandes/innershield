@@ -16,6 +16,7 @@
       "supportsTablet": true,
       "icon": "./assets/iconoapp.png",
       "bundleIdentifier": "com.innershield.app",
+        "googleServicesFile": "./GoogleService-Info.plist",
       "buildNumber": "1",
       "infoPlist": {
         "UIBackgroundModes": [
@@ -54,6 +55,9 @@
         "projectId": "01b3db52-d9ca-40b9-a32e-d68a1a96fd53"
       }
     },
+    "plugins": [
+      "@react-native-firebase/app" 
+    ],
     "owner": "vitandes"
   }
 }

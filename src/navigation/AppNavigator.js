@@ -17,6 +17,7 @@ import SleepMelodiesScreen from '../screens/SleepMelodiesScreen';
 import JournalScreen from '../screens/JournalScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
+import LoginScreen from '../screens/LoginScreen';
 import WelcomeScreen from '../screens/WelcomeScreen';
 
 const Tab = createBottomTabNavigator();
@@ -96,6 +97,11 @@ export default function AppNavigator() {
         <Stack.Screen 
           name="Onboarding" 
           component={OnboardingScreen} 
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen 
+          name="Login" 
+          component={LoginScreen} 
           options={{ headerShown: false }}
         />
         <Stack.Screen 
