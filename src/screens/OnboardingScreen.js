@@ -233,10 +233,10 @@ const OnboardingScreen = ({ navigation }) => {
       await AsyncStorage.setItem('onboardingData', JSON.stringify(onboardingData));
       
       // Navegar a la pantalla principal
-      navigation.replace('Login');
+      navigation.replace('Paywall');
     } catch (error) {
       console.error('Error saving onboarding data:', error);
-      navigation.replace('Main');
+      navigation.replace('Onboarding');
     }
   };
 

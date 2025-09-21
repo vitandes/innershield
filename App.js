@@ -1,10 +1,13 @@
-import React, { useEffect } from 'react';
-import { StatusBar } from 'expo-status-bar';
-import * as Notifications from 'expo-notifications';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import AppNavigator from './src/navigation/AppNavigator';
-import { ThemeProvider, useTheme } from './src/context/ThemeContext';
-import { dailyMessages } from './src/data/dailyMessages';
+import React, { useEffect, useState } from "react";
+import { StatusBar } from "expo-status-bar";
+import * as Notifications from "expo-notifications";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import AppNavigator from "./src/navigation/AppNavigator";
+import { ThemeProvider, useTheme } from "./src/context/ThemeContext";
+import { dailyMessages } from "./src/data/dailyMessages";
+import Purchases from "react-native-purchases";
+import { Platform } from "react-native";
+import HomeScreen from "./src/screens/HomeScreen";
 
 // Configurar el handler de notificaciones
 Notifications.setNotificationHandler({
@@ -18,25 +21,39 @@ Notifications.setNotificationHandler({
 // Función para obtener el mensaje del día usando la misma lógica que HomeScreen
 const getDailyMessage = async () => {
   try {
-    const lastUpdateString = await AsyncStorage.getItem('lastDailyMessageUpdate');
+    const lastUpdateString = await AsyncStorage.getItem(
+      "lastDailyMessageUpdate"
+    );
     const lastUpdate = lastUpdateString ? new Date(lastUpdateString) : null;
     const now = new Date();
-    const eightAmToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 0, 0);
+    const eightAmToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      8,
+      0,
+      0
+    );
 
     let usedIndices = [];
-    const usedIndicesString = await AsyncStorage.getItem('usedDailyMessagesIndices');
+    const usedIndicesString = await AsyncStorage.getItem(
+      "usedDailyMessagesIndices"
+    );
     if (usedIndicesString) {
       usedIndices = JSON.parse(usedIndicesString);
     }
 
-    const needsUpdate = !lastUpdate || (now >= eightAmToday && lastUpdate < eightAmToday);
+    const needsUpdate =
+      !lastUpdate || (now >= eightAmToday && lastUpdate < eightAmToday);
 
     if (needsUpdate) {
       if (usedIndices.length >= dailyMessages.length) {
         usedIndices = [];
       }
 
-      let availableMessages = dailyMessages.filter((_, index) => !usedIndices.includes(index));
+      let availableMessages = dailyMessages.filter(
+        (_, index) => !usedIndices.includes(index)
+      );
       if (availableMessages.length === 0) {
         usedIndices = [];
         availableMessages = dailyMessages;
@@ -47,8 +64,11 @@ const getDailyMessage = async () => {
       const originalIndex = dailyMessages.indexOf(selectedMessage);
 
       usedIndices.push(originalIndex);
-      await AsyncStorage.setItem('usedDailyMessagesIndices', JSON.stringify(usedIndices));
-      await AsyncStorage.setItem('lastDailyMessageUpdate', now.toISOString());
+      await AsyncStorage.setItem(
+        "usedDailyMessagesIndices",
+        JSON.stringify(usedIndices)
+      );
+      await AsyncStorage.setItem("lastDailyMessageUpdate", now.toISOString());
       return selectedMessage;
     } else {
       // Si no necesita actualización, devolver el último mensaje usado
@@ -57,13 +77,19 @@ const getDailyMessage = async () => {
         return dailyMessages[lastUsedIndex];
       } else {
         // Fallback
-        const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
+        const dayOfYear = Math.floor(
+          (new Date() - new Date(new Date().getFullYear(), 0, 0)) /
+            (1000 * 60 * 60 * 24)
+        );
         return dailyMessages[dayOfYear % dailyMessages.length];
       }
     }
   } catch (error) {
-    console.error('Error getting daily message:', error);
-    const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
+    console.error("Error getting daily message:", error);
+    const dayOfYear = Math.floor(
+      (new Date() - new Date(new Date().getFullYear(), 0, 0)) /
+        (1000 * 60 * 60 * 24)
+    );
     return dailyMessages[dayOfYear % dailyMessages.length];
   }
 };
@@ -72,17 +98,19 @@ const getDailyMessage = async () => {
 const scheduleNextDayNotification = async () => {
   try {
     // Verificar si estamos en una plataforma que soporta notificaciones
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       // Estamos en web, las notificaciones no están disponibles
-      console.log('Notifications not available on web platform');
+      console.log("Notifications not available on web platform");
       return;
     }
-    
+
     // Cancelar notificaciones existentes
     await Notifications.cancelAllScheduledNotificationsAsync();
-    
+
     // Verificar si las notificaciones están habilitadas
-    const notificationsEnabled = await AsyncStorage.getItem('notificationsEnabled');
+    const notificationsEnabled = await AsyncStorage.getItem(
+      "notificationsEnabled"
+    );
     if (!notificationsEnabled || !JSON.parse(notificationsEnabled)) {
       return;
     }
@@ -91,7 +119,7 @@ const scheduleNextDayNotification = async () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(8, 0, 0, 0);
-    
+
     // Programar notificación para mañana a las 8 AM
     await Notifications.scheduleNotificationAsync({
       content: {
@@ -102,10 +130,10 @@ const scheduleNextDayNotification = async () => {
         date: tomorrow,
       },
     });
-    
-    console.log('Next day notification scheduled for:', tomorrow);
+
+    console.log("Next day notification scheduled for:", tomorrow);
   } catch (error) {
-    console.error('Error scheduling next day notification:', error);
+    console.error("Error scheduling next day notification:", error);
   }
 };
 
@@ -113,54 +141,98 @@ const scheduleNextDayNotification = async () => {
 const initializeAutoNotifications = async () => {
   try {
     // Verificar si estamos en una plataforma que soporta notificaciones
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       // Estamos en web, las notificaciones no están disponibles
-      console.log('Auto notifications not available on web platform');
+      console.log("Auto notifications not available on web platform");
       return;
     }
-    
+
     // Solicitar permisos
     await Notifications.requestPermissionsAsync();
-    
+
     // Programar la notificación del día siguiente
     await scheduleNextDayNotification();
-    
+
     // Configurar un intervalo para reprogramar cada día
     const checkAndSchedule = async () => {
       const now = new Date();
-      const eightAmToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 0, 0);
-      
+      const eightAmToday = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        8,
+        0,
+        0
+      );
+
       // Si ya pasaron las 8 AM de hoy, programar para mañana
       if (now >= eightAmToday) {
         await scheduleNextDayNotification();
       }
     };
-    
+
     // Verificar cada hora si necesitamos reprogramar
     setInterval(checkAndSchedule, 60 * 60 * 1000);
-    
   } catch (error) {
-    console.error('Error initializing auto notifications:', error);
+    console.error("Error initializing auto notifications:", error);
   }
 };
 
 function AppContent() {
   const { isDarkMode } = useTheme();
-  
+
   useEffect(() => {
     // Inicializar el sistema de notificaciones automáticas
     initializeAutoNotifications();
+   
   }, []);
-  
+
   return (
     <>
-      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
+      <StatusBar style={isDarkMode ? "light" : "dark"} />
       <AppNavigator />
     </>
   );
 }
 
-export default function App() {
+export default function App( {navigation}) {
+  const [hasSubscription, setHasSubscription] = useState(false);
+
+  const hasActiveSubscription = async () => {
+    try {
+      const customerInfo = await Purchases.getCustomerInfo();
+      return Object.keys(customerInfo.entitlements.active).length > 0;
+    } catch (e) {
+      console.error("Error verificando suscripción:", e);
+      return false;
+    }
+  };
+
+
+  useEffect(() => {
+    console.log("funciona");
+    if (Platform.OS === "ios") {
+      Purchases.configure({ apiKey: process.env.EXPO_PUBLIC_RC_IOS });
+      console.log("RootLayout: RevenueCat iOS SDK configurado.");
+    } else if (Platform.OS === "android") {
+      Purchases.configure({ apiKey: process.env.EXPO_PUBLIC_RC_ANDROID });
+      console.log(
+        "RootLayout: RevenueCat Android SDK configurado con key:",
+        process.env.EXPO_PUBLIC_RC_ANDROID
+      );
+    }
+
+   const checkSubscription = async () => {
+      const active = await hasActiveSubscription();
+      console.log("✅ ¿Tiene suscripción activa?:", active);
+      setHasSubscription(active);
+    };
+
+    checkSubscription();
+
+
+  }, []);
+
   return (
     <ThemeProvider>
       <AppContent />

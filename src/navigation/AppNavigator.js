@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -17,14 +17,21 @@ import SleepMelodiesScreen from '../screens/SleepMelodiesScreen';
 import JournalScreen from '../screens/JournalScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
+import Paywall from '../screens/Paywall';
 import LoginScreen from '../screens/LoginScreen';
 import WelcomeScreen from '../screens/WelcomeScreen';
+import { Platform } from 'react-native';
+
+import Purchases from 'react-native-purchases';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
 function TabNavigator() {
   const { colors } = useTheme();
+
+ 
+ 
   
   return (
     <Tab.Navigator
@@ -69,6 +76,33 @@ function TabNavigator() {
 
 export default function AppNavigator() {
   const { isDarkMode, colors } = useTheme();
+  const [hasSubscription, setHasSubscription] = useState(false);
+
+  const hasActiveSubscription = async () => {
+    try {
+      const customerInfo = await Purchases.getCustomerInfo();
+      return Object.keys(customerInfo.entitlements.active).length > 0;
+    } catch (e) {
+      console.error("Error verificando suscripción:", e);
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    
+
+   const checkSubscription = async () => {
+      const active = await hasActiveSubscription();
+      console.log("✅ ¿Tiene suscripción activa?:", active);
+      setHasSubscription(active);
+    };
+
+    checkSubscription();
+
+
+  }, []);
+
+  
   
   // Tema personalizado para Navigation Container
   const navigationTheme = {
@@ -83,80 +117,40 @@ export default function AppNavigator() {
     },
   };
 
+  // Mientras carga la info de RevenueCat mostramos pantalla vacía o loading
+  if (hasSubscription === null) {
+    return (
+      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ fontSize: 18 }}>Loading...</Text>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <NavigationContainer theme={navigationTheme}>
-      <Stack.Navigator
-        screenOptions={{
-          headerShown: false,
-        }}>
-        <Stack.Screen 
-          name="Welcome" 
-          component={WelcomeScreen} 
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen 
-          name="Onboarding" 
-          component={OnboardingScreen} 
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen 
-          name="Login" 
-          component={LoginScreen} 
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen 
-          name="Main" 
-          component={TabNavigator} 
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen 
-          name="SOS" 
-          component={SOSScreen} 
-          options={{ 
-            headerShown: false
-          }}
-        />
-        <Stack.Screen 
-          name="Shield" 
-          component={ShieldScreen} 
-          options={{ title: 'Protective Shield' }}
-        />
-        <Stack.Screen 
-          name="More" 
-          component={MoreScreen} 
-          options={{ title: 'Settings' }}
-        />
-        <Stack.Screen 
-          name="Breathing" 
-          component={BreathingScreen} 
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen 
-          name="SOSFeedback" 
-          component={SOSFeedbackScreen} 
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen 
-          name="BreathingFeedback" 
-          component={BreathingFeedbackScreen} 
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen 
-          name="SleepMelodies" 
-          component={SleepMelodiesScreen} 
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen 
-          name="Journal" 
-          component={JournalScreen} 
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen 
-          name="Profile" 
-          component={ProfileScreen} 
-          options={{ headerShown: false }}
-        />
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {hasSubscription ? (
+          // Si tiene suscripción activa → va directo al Home (Main)
+          <Stack.Screen name="Main" component={TabNavigator} />
+        ) : (
+          // Si no tiene suscripción → Onboarding (o Paywall si prefieres)
+          <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+        )}
+
+        {/* Otras pantallas que quieres mantener accesibles */}
+        <Stack.Screen name="Welcome" component={WelcomeScreen} />
+        <Stack.Screen name="Paywall" component={Paywall} />
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="SOS" component={SOSScreen} />
+        <Stack.Screen name="Shield" component={ShieldScreen} />
+        <Stack.Screen name="More" component={MoreScreen} />
+        <Stack.Screen name="Breathing" component={BreathingScreen} />
+        <Stack.Screen name="SOSFeedback" component={SOSFeedbackScreen} />
+        <Stack.Screen name="BreathingFeedback" component={BreathingFeedbackScreen} />
+        <Stack.Screen name="SleepMelodies" component={SleepMelodiesScreen} />
+        <Stack.Screen name="Journal" component={JournalScreen} />
+        <Stack.Screen name="Profile" component={ProfileScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
-};
+}

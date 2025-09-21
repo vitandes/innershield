@@ -4,6 +4,7 @@ import { auth } from '../../firebaseConfig';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { OAuthProvider, signInWithCredential } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Purchases from 'react-native-purchases';
 
 export default function LoginScreen({ navigation }) {
   const onAppleButtonPress = async () => {
@@ -27,6 +28,7 @@ export default function LoginScreen({ navigation }) {
         const userCredential = await signInWithCredential(auth, credential);
         await AsyncStorage.setItem("user_uid", userCredential.user.uid);
         const uid = await AsyncStorage.getItem("user_uid");
+        await Purchases.logIn(uid);
         console.log("¡Login con Apple exitoso!", uid);
        
         navigation.navigate('Main');
