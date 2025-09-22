@@ -29,18 +29,18 @@ export default function LoginScreen({ navigation }) {
         await AsyncStorage.setItem("user_uid", userCredential.user.uid);
         const uid = await AsyncStorage.getItem("user_uid");
         await Purchases.logIn(uid);
-        console.log("¡Login con Apple exitoso!", uid);
+        console.log("Apple login successful!", uid);
        
         navigation.navigate('HomeScreen');
       } else {
-        throw new Error("No se recibió el token de identidad de Apple.");
+        throw new Error("Apple identity token was not received.");
       }
     } catch (error) {
       if (error.code === "ERR_REQUEST_CANCELED") {
-        console.log("El usuario canceló el inicio de sesión con Apple.");
+        console.log("User canceled Apple sign-in.");
       } else {
         
-        console.log("Error", "Ocurrió un error al intentar iniciar sesión con Apple.");
+        console.log("Error", "An error occurred while trying to sign in with Apple.");
       }
     }
   };
@@ -49,7 +49,7 @@ export default function LoginScreen({ navigation }) {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <Text style={styles.title}>InnerShield</Text>
-        <Text style={styles.subtitle}>Tu espacio seguro</Text>
+        <Text style={styles.subtitle}>Your safe space</Text>
 
         <AppleAuthentication.AppleAuthenticationButton
           buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}

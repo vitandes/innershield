@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, TextInput, Image, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, TextInput, Image, StatusBar, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -54,7 +54,7 @@ const cancelAllNotifications = async () => {
 
 const ProfileScreen = ({ navigation }) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [userName, setUserName] = useState('Usuario');
+  const [userName, setUserName] = useState('User');
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState('');
 
@@ -95,7 +95,7 @@ const ProfileScreen = ({ navigation }) => {
 
   const handleSaveName = async () => {
     if (tempName.trim().length === 0) {
-      Alert.alert('Error', 'El nombre no puede estar vacío');
+      Alert.alert('Error', 'Name cannot be empty');
       return;
     }
 
@@ -103,10 +103,10 @@ const ProfileScreen = ({ navigation }) => {
       await AsyncStorage.setItem('userName', tempName.trim());
       setUserName(tempName.trim());
       setIsEditingName(false);
-      Alert.alert('Éxito', 'Nombre actualizado correctamente');
+      Alert.alert('Success', 'Name updated successfully');
     } catch (error) {
       console.error('Error saving user name:', error);
-      Alert.alert('Error', 'No se pudo guardar el nombre');
+      Alert.alert('Error', 'Could not save name');
     }
   };
 
@@ -115,17 +115,18 @@ const ProfileScreen = ({ navigation }) => {
     setTempName('');
   };
 
-  const handleNotificationsToggle = async (value) => {
-    setNotificationsEnabled(value);
+  const handleNotificationsToggle = async () => {
+    const newValue = !notificationsEnabled;
+    setNotificationsEnabled(newValue);
     
     // Guardar el estado en AsyncStorage
     try {
-      await AsyncStorage.setItem('notificationsEnabled', JSON.stringify(value));
+      await AsyncStorage.setItem('notificationsEnabled', JSON.stringify(newValue));
     } catch (error) {
       console.error('Error saving notification settings:', error);
     }
     
-    if (value) {
+    if (newValue) {
       await scheduleNextDayNotification();
       Alert.alert('Notifications Enabled', 'You will receive a daily message at 8:00 AM.');
     } else {
@@ -149,105 +150,182 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent={true} />
+    <ScrollView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#667eea" translucent={false} />
+      
+      {/* Header with gradient background */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="black" />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profile</Text>
+        <Text style={styles.headerTitle}>My Profile</Text>
       </View>
+
       <View style={styles.content}>
-        <View style={styles.profileInfo}>
-          <Image 
-            source={require('../../assets/icono-profile.png')} 
-            style={styles.profileIcon}
-            resizeMode="contain"
-          />
-          {isEditingName ? (
-            <View style={styles.editNameContainer}>
-              <TextInput
-                style={styles.nameInput}
-                value={tempName}
-                onChangeText={setTempName}
-                placeholder="Ingresa tu nombre"
-                autoFocus={true}
-                maxLength={30}
+        {/* Profile Card */}
+        <View style={styles.profileCard}>
+          <View style={styles.profileInfo}>
+            <View style={styles.profileImageContainer}>
+              <Image 
+                source={require('../../assets/icono-profile.png')} 
+                style={styles.profileIcon}
+                resizeMode="contain"
               />
-              <View style={styles.editButtons}>
-                <TouchableOpacity style={styles.saveButton} onPress={handleSaveName}>
-                  <Ionicons name="checkmark" size={20} color="white" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.cancelButton} onPress={handleCancelEdit}>
-                  <Ionicons name="close" size={20} color="white" />
+            </View>
+            
+            {isEditingName ? (
+              <View style={styles.editNameContainer}>
+                <TextInput
+                  style={styles.nameInput}
+                  value={tempName}
+                  onChangeText={setTempName}
+                  placeholder="Enter your name"
+                  autoFocus={true}
+                  maxLength={30}
+                />
+                <View style={styles.editButtons}>
+                  <TouchableOpacity style={styles.saveButton} onPress={handleSaveName}>
+                    <Ionicons name="checkmark" size={20} color="white" />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.cancelButton} onPress={handleCancelEdit}>
+                    <Ionicons name="close" size={20} color="white" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.nameContainer}>
+                <Text style={styles.profileName}>{userName}</Text>
+                <TouchableOpacity style={styles.editButton} onPress={handleEditName}>
+                  <Ionicons name="pencil" size={16} color="#667eea" />
                 </TouchableOpacity>
               </View>
-            </View>
-          ) : (
-            <View style={styles.nameContainer}>
-              <Text style={styles.profileName}>{userName}</Text>
-              <TouchableOpacity style={styles.editButton} onPress={handleEditName}>
-                <Ionicons name="pencil" size={16} color="#667eea" />
-              </TouchableOpacity>
-            </View>
-          )}
+            )}
+          </View>
         </View>
 
-        <View style={styles.menu}>
-          <View style={styles.menuItem}>
-            <Text style={styles.menuItemText}>Enable Notifications</Text>
-            <Switch
-              value={notificationsEnabled}
-              onValueChange={handleNotificationsToggle}
-            />
-          </View>
+        {/* Settings Section */}
+        <View style={styles.settingsSection}>
+          <Text style={styles.sectionTitle}>Settings</Text>
+          
+          {/* Notifications Button */}
+          <TouchableOpacity 
+            style={[styles.settingItem, styles.notificationButton]} 
+            onPress={handleNotificationsToggle}
+          >
+            <View style={styles.settingLeft}>
+              <View style={[styles.iconContainer, { backgroundColor: notificationsEnabled ? '#4CAF50' : '#ccc' }]}>
+                <Ionicons 
+                  name={notificationsEnabled ? "notifications" : "notifications-off"} 
+                  size={20} 
+                  color="white" 
+                />
+              </View>
+              <View style={styles.settingTextContainer}>
+                <Text style={styles.settingTitle}>Daily Notifications</Text>
+                <Text style={styles.settingSubtitle}>
+                  {notificationsEnabled ? 'Enabled - 8:00 AM' : 'Disabled'}
+                </Text>
+              </View>
+            </View>
+            <View style={[styles.statusBadge, { backgroundColor: notificationsEnabled ? '#4CAF50' : '#f44336' }]}>
+              <Text style={styles.statusText}>
+                {notificationsEnabled ? 'ON' : 'OFF'}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
 
-          <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
-            <Text style={styles.menuItemText}>Logout</Text>
-            <Ionicons name="log-out-outline" size={24} color="#ccc" />
+        {/* Account Section */}
+        <View style={styles.settingsSection}>
+          <Text style={styles.sectionTitle}>Account</Text>
+          
+          <TouchableOpacity style={styles.settingItem} onPress={handleLogout}>
+            <View style={styles.settingLeft}>
+              <View style={[styles.iconContainer, { backgroundColor: '#FF9800' }]}>
+                <Ionicons name="log-out-outline" size={20} color="white" />
+              </View>
+              <Text style={styles.settingTitle}>Sign Out</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#ccc" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem} onPress={handleDeleteAccount}>
-            <Text style={[styles.menuItemText, styles.deleteText]}>Delete Account</Text>
-            <Ionicons name="trash-outline" size={24} color="#FF6B6B" />
+          <TouchableOpacity style={styles.settingItem} onPress={handleDeleteAccount}>
+            <View style={styles.settingLeft}>
+              <View style={[styles.iconContainer, { backgroundColor: '#f44336' }]}>
+                <Ionicons name="trash-outline" size={20} color="white" />
+              </View>
+              <Text style={[styles.settingTitle, styles.deleteText]}>Delete Account</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#f44336" />
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f8f9fa',
   },
   header: {
+    backgroundColor: '#667eea',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingTop: StatusBar.currentHeight || 44,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    paddingVertical: 16,
+    paddingTop: 64,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  backButton: {
+    padding: 4,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     marginLeft: 16,
+    color: 'white',
   },
   content: {
     flex: 1,
     padding: 20,
   },
+  profileCard: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 24,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
   profileInfo: {
     alignItems: 'center',
-    marginBottom: 40,
+  },
+  profileImageContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   profileIcon: {
-    width: 80,
-    height: 80,
-    marginBottom: 15,
+    width: 60,
+    height: 60,
   },
   nameContainer: {
     flexDirection: 'row',
@@ -257,56 +335,112 @@ const styles = StyleSheet.create({
   profileName: {
     fontSize: 24,
     fontWeight: 'bold',
+    color: '#333',
     marginRight: 10,
   },
   editButton: {
-    padding: 5,
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#f0f0f0',
   },
   editNameContainer: {
     alignItems: 'center',
     width: '100%',
   },
   nameInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
+    borderWidth: 2,
+    borderColor: '#667eea',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     fontSize: 18,
     textAlign: 'center',
-    marginBottom: 15,
+    marginBottom: 16,
     width: '80%',
+    backgroundColor: 'white',
   },
   editButtons: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 12,
   },
   saveButton: {
     backgroundColor: '#4CAF50',
-    borderRadius: 20,
-    padding: 8,
+    borderRadius: 24,
+    padding: 12,
+    elevation: 2,
   },
   cancelButton: {
     backgroundColor: '#f44336',
-    borderRadius: 20,
-    padding: 8,
+    borderRadius: 24,
+    padding: 12,
+    elevation: 2,
   },
-  menu: {
-    marginTop: 20,
+  settingsSection: {
+    marginBottom: 24,
   },
-  menuItem: {
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 12,
+    marginLeft: 4,
+  },
+  settingItem: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  menuItemText: {
-    fontSize: 18,
+  notificationButton: {
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  settingLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  settingTextContainer: {
+    flex: 1,
+  },
+  settingTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+  },
+  settingSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  statusText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   deleteText: {
-    color: '#FF6B6B',
+    color: '#f44336',
   },
 });
 
