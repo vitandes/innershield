@@ -138,14 +138,33 @@ const ProfileScreen = ({ navigation }) => {
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Logout', onPress: () => console.log('Logged out') },
+      { text: 'Logout',   onPress: async () => {
+        try {
+          await AsyncStorage.removeItem("user_uid");
+          console.log("✅ UID eliminado de AsyncStorage");
+          navigation.replace('WelcomeScreen');
+          // aquí también podrías navegar al login, por ejemplo:
+          // navigation.replace("Login");
+        } catch (error) {
+          console.error("❌ Error eliminando UID:", error);
+        }
+      }  },
     ]);
   };
 
   const handleDeleteAccount = () => {
     Alert.alert('Delete Account', 'Are you sure you want to delete your account? This action cannot be undone.', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', onPress: () => console.log('Account deleted'), style: 'destructive' },
+      { text: 'Delete', onPress: async () => {
+        try {
+          await AsyncStorage.removeItem("user_uid");
+          console.log("✅ UID eliminado de AsyncStorage");
+          navigation.replace('WelcomeScreen');
+          // aquí también podrías navegar al login, por ejemplo:
+          // navigation.replace("Login");
+        } catch (error) {
+          console.error("❌ Error eliminando UID:", error);
+        }}, style: 'destructive' },
     ]);
   };
 

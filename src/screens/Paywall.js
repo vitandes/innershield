@@ -10,7 +10,7 @@ async function presentPaywall() {
     console.log("Paywall result:", result);
     if (result === PAYWALL_RESULT.PURCHASED) {
       console.log("Purchased!");
-      navigation.replace('Login');;
+      navigation.replace('Login');
       return true;
     } else {
       console.log("Not purchased.");

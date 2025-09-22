@@ -141,6 +141,7 @@ export default function AppNavigator() {
 
         {/* Otras pantallas que quieres mantener accesibles */}
         
+        <Stack.Screen name="WelcomeScreen" component={WelcomeScreen} />
         <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         <Stack.Screen name="Paywall" component={Paywall} />
         <Stack.Screen name="Login" component={LoginScreen} />
