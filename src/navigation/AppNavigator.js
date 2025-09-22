@@ -23,6 +23,7 @@ import WelcomeScreen from '../screens/WelcomeScreen';
 import { Platform } from 'react-native';
 
 import Purchases from 'react-native-purchases';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -77,10 +78,15 @@ function TabNavigator() {
 export default function AppNavigator() {
   const { isDarkMode, colors } = useTheme();
   const [hasSubscription, setHasSubscription] = useState(null);
+  const [uid, setUid] = useState(null);
+
+  
 
   const hasActiveSubscription = async () => {
     try {
       const customerInfo = await Purchases.getCustomerInfo();
+      const id = await AsyncStorage.getItem("user_uid");
+      setUid(id);
       return Object.keys(customerInfo.entitlements.active).length > 0;
     } catch (e) {
       console.error("Error verificando suscripción:", e);
@@ -125,7 +131,7 @@ export default function AppNavigator() {
   return (
     <NavigationContainer theme={navigationTheme}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {hasSubscription ? (
+        {hasSubscription && uid ? (
           // Si tiene suscripción activa → va directo al Home (Main)
           <Stack.Screen name="Main" component={TabNavigator} />
         ) : (
