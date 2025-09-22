@@ -76,7 +76,7 @@ function TabNavigator() {
 
 export default function AppNavigator() {
   const { isDarkMode, colors } = useTheme();
-  const [hasSubscription, setHasSubscription] = useState(false);
+  const [hasSubscription, setHasSubscription] = useState(null);
 
   const hasActiveSubscription = async () => {
     try {
@@ -119,11 +119,7 @@ export default function AppNavigator() {
 
   // Mientras carga la info de RevenueCat mostramos pantalla vacía o loading
   if (hasSubscription === null) {
-    return (
-      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={{ fontSize: 18 }}>Loading...</Text>
-      </SafeAreaView>
-    );
+    return null;
   }
 
   return (
@@ -134,13 +130,15 @@ export default function AppNavigator() {
           <Stack.Screen name="Main" component={TabNavigator} />
         ) : (
           // Si no tiene suscripción → Onboarding (o Paywall si prefieres)
-          <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+          <Stack.Screen name="Welcome" component={WelcomeScreen} />
         )}
 
         {/* Otras pantallas que quieres mantener accesibles */}
-        <Stack.Screen name="Welcome" component={WelcomeScreen} />
+        
+        <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         <Stack.Screen name="Paywall" component={Paywall} />
         <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="HomeScreen" component={HomeScreen} />
         <Stack.Screen name="SOS" component={SOSScreen} />
         <Stack.Screen name="Shield" component={ShieldScreen} />
         <Stack.Screen name="More" component={MoreScreen} />

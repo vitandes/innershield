@@ -31,7 +31,7 @@ export default function LoginScreen({ navigation }) {
         await Purchases.logIn(uid);
         console.log("¡Login con Apple exitoso!", uid);
        
-        navigation.navigate('Main');
+        navigation.navigate('HomeScreen');
       } else {
         throw new Error("No se recibió el token de identidad de Apple.");
       }

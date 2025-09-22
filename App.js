@@ -195,43 +195,37 @@ function AppContent() {
   );
 }
 
-export default function App( {navigation}) {
-  const [hasSubscription, setHasSubscription] = useState(false);
+export default function App() {
+  const [isReady, setIsReady] = useState(false);
 
-  const hasActiveSubscription = async () => {
-    try {
-      const customerInfo = await Purchases.getCustomerInfo();
-      return Object.keys(customerInfo.entitlements.active).length > 0;
-    } catch (e) {
-      console.error("Error verificando suscripción:", e);
-      return false;
-    }
-  };
-
+ 
 
   useEffect(() => {
-    console.log("funciona");
-    if (Platform.OS === "ios") {
-      Purchases.configure({ apiKey: process.env.EXPO_PUBLIC_RC_IOS });
-      console.log("RootLayout: RevenueCat iOS SDK configurado.");
-    } else if (Platform.OS === "android") {
-      Purchases.configure({ apiKey: process.env.EXPO_PUBLIC_RC_ANDROID });
-      console.log(
-        "RootLayout: RevenueCat Android SDK configurado con key:",
-        process.env.EXPO_PUBLIC_RC_ANDROID
-      );
-    }
+    const init = async () => {
+      console.log("funciona");
 
-   const checkSubscription = async () => {
-      const active = await hasActiveSubscription();
-      console.log("✅ ¿Tiene suscripción activa?:", active);
-      setHasSubscription(active);
+      if (Platform.OS === "ios") {
+        Purchases.configure({ apiKey: process.env.EXPO_PUBLIC_RC_IOS });
+        console.log("RootLayout: RevenueCat iOS SDK configurado.");
+      } else if (Platform.OS === "android") {
+        Purchases.configure({ apiKey: process.env.EXPO_PUBLIC_RC_ANDROID });
+        console.log(
+          "RootLayout: RevenueCat Android SDK configurado con key:",
+          process.env.EXPO_PUBLIC_RC_ANDROID
+        );
+      }
+
+      
+      setIsReady(true);
     };
 
-    checkSubscription();
-
-
+    init();
   }, []);
+
+  if (!isReady) {
+    // Mientras se hace la configuración puedes mostrar un loader
+    return null; // O algún componente <Loading />
+  }
 
   return (
     <ThemeProvider>
