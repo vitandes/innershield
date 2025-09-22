@@ -23,9 +23,7 @@
         "UIBackgroundModes": [
           "audio"
         ],
-        "NSMicrophoneUsageDescription": "Esta aplicación necesita acceso al micrófono para funciones de respiración guiada.",
         "NSCameraUsageDescription": "Esta aplicación puede necesitar acceso a la cámara para funciones futuras.",
-        "NSUserTrackingUsageDescription": "Esta aplicación utiliza datos para proporcionar una experiencia personalizada y mejorar nuestros servicios.",
         "ITSAppUsesNonExemptEncryption": false,
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": false,
