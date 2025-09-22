@@ -18,6 +18,7 @@
       "bundleIdentifier": "com.innershield.app",
       "googleServicesFile": "./GoogleService-Info.plist",
       "buildNumber": "1",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "UIBackgroundModes": [
           "audio",
@@ -58,6 +59,7 @@
     "plugins": [
       "@react-native-firebase/app",
       "@react-native-firebase/auth",
+      "expo-apple-authentication",
       [
         "expo-build-properties",
         {

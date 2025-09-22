@@ -8,6 +8,7 @@ import { dailyMessages } from "./src/data/dailyMessages";
 import Purchases from "react-native-purchases";
 import { Platform } from "react-native";
 import HomeScreen from "./src/screens/HomeScreen";
+import LoadingScreen from "./src/screens/LoadingScreen";
 
 // Configurar el handler de notificaciones
 Notifications.setNotificationHandler({
@@ -224,7 +225,7 @@ export default function App() {
 
   if (!isReady) {
     // Mientras se hace la configuración puedes mostrar un loader
-    return null; // O algún componente <Loading />
+    return <LoadingScreen />; // O algún componente <Loading />
   }
 
   return (

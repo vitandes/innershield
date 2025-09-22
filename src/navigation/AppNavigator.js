@@ -24,6 +24,7 @@ import { Platform } from 'react-native';
 
 import Purchases from 'react-native-purchases';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import LoadingScreen from '../screens/LoadingScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -125,7 +126,7 @@ export default function AppNavigator() {
 
   // Mientras carga la info de RevenueCat mostramos pantalla vacía o loading
   if (hasSubscription === null) {
-    return null;
+    return <LoadingScreen />;
   }
 
   return (
