@@ -1,0 +1,257 @@
+Using Expo modules
+[Expo] Enabling modular headers for pod ExpoModulesCore
+[Expo] Enabling modular headers for pod React-RCTAppDelegate
+[Expo] Enabling modular headers for pod React-RCTFabric
+[Expo] Enabling modular headers for pod ReactAppDependencyProvider
+[Expo] Enabling modular headers for pod React-Core
+[Expo] Enabling modular headers for pod ReactCodegen
+[Expo] Enabling modular headers for pod RCTRequired
+[Expo] Enabling modular headers for pod RCTTypeSafety
+[Expo] Enabling modular headers for pod ReactCommon
+[Expo] Enabling modular headers for pod React-NativeModulesApple
+[Expo] Enabling modular headers for pod Yoga
+[Expo] Enabling modular headers for pod React-Fabric
+[Expo] Enabling modular headers for pod React-graphics
+[Expo] Enabling modular headers for pod React-utils
+[Expo] Enabling modular headers for pod React-featureflags
+[Expo] Enabling modular headers for pod React-debug
+[Expo] Enabling modular headers for pod React-ImageManager
+[Expo] Enabling modular headers for pod React-rendererdebug
+[Expo] Enabling modular headers for pod React-jsi
+[Expo] Enabling modular headers for pod React-renderercss
+[Expo] Enabling modular headers for pod hermes-engine
+[Expo] Enabling modular headers for pod glog
+[Expo] Enabling modular headers for pod boost
+[Expo] Enabling modular headers for pod DoubleConversion
+[Expo] Enabling modular headers for pod fast_float
+[Expo] Enabling modular headers for pod fmt
+[Expo] Enabling modular headers for pod RCT-Folly
+[Expo] Enabling modular headers for pod SocketRocket
+[Expo] Enabling modular headers for pod expo-dev-menu-interface
+[Expo] Enabling modular headers for pod EXManifests
+[Expo] Enabling modular headers for pod EXUpdatesInterface
+[Expo] Enabling modular headers for pod expo-dev-menu
+[Expo] Enabling modular headers for pod React-jsinspector
+[Expo] Enabling modular headers for pod expo-dev-launcher
+Found 10 modules for target `innershield`
+link_native_modules! {:ios_packages=>[{:configurations=>[], :name=>"@react-native-async-storage/async-storage", :root=>"/Users/expo/workingdir/build/node_modules/@react-native-async-storage/async-storage", :path=>"../node_modules/@react-native-async-storage/async-storage", :podspec_path=>"/Users/expo/workingdir/build/node_modules/@react-native-async-storage/async-storage/RNCAsyncStorage.podspec", :script_phases=>[]}, {:configurations=>[], :name=>"@react-native-firebase/app", :root=>"/Users/expo/workingdir/build/node_modules/@react-native-firebase/app", :path=>"../node_modules/@react-native-firebase/app", :podspec_path=>"/Users/expo/workingdir/build/node_modules/@react-native-firebase/app/RNFBApp.podspec", :script_phases=>[{"name"=>"[RNFB] Core Configuration", "path"=>"./ios_config.sh", "execution_position"=>"after_compile", "input_files"=>["$(BUILT_PRODUCTS_DIR)/$(INFOPLIST_PATH)"]}]}, {:configurations=>[], :name=>"@react-native-firebase/auth", :root=>"/Users/expo/workingdir/build/node_modules/@react-native-firebase/auth", :path=>"../node_modules/@react-native-firebase/auth", :podspec_path=>"/Users/expo/workingdir/build/node_modules/@react-native-firebase/auth/RNFBAuth.podspec", :script_phases=>[]}, {:configurations=>[], :name=>"expo", :root=>"/Users/expo/workingdir/build/node_modules/expo", :path=>"../node_modules/expo", :podspec_path=>"/Users/expo/workingdir/build/node_modules/expo/Expo.podspec", :script_phases=>[]}, {:configurations=>[], :name=>"react-native-gesture-handler", :root=>"/Users/expo/workingdir/build/node_modules/react-native-gesture-handler", :path=>"../node_modules/react-native-gesture-handler", :podspec_path=>"/Users/expo/workingdir/build/node_modules/react-native-gesture-handler/RNGestureHandler.podspec", :script_phases=>[]}, {:configurations=>[], :name=>"react-native-purchases", :root=>"/Users/expo/workingdir/build/node_modules/react-native-purchases", :path=>"../node_modules/react-native-purchases", :podspec_path=>"/Users/expo/workingdir/build/node_modules/react-native-purchases/RNPurchases.podspec", :script_phases=>[]}, {:configurations=>[], :name=>"react-native-purchases-ui", :root=>"/Users/expo/workingdir/build/node_modules/react-native-purchases-ui", :path=>"../node_modules/react-native-purchases-ui", :podspec_path=>"/Users/expo/workingdir/build/node_modules/react-native-purchases-ui/RNPaywalls.podspec", :script_phases=>[]}, {:configurations=>[], :name=>"react-native-safe-area-context", :root=>"/Users/expo/workingdir/build/node_modules/react-native-safe-area-context", :path=>"../node_modules/react-native-safe-area-context", :podspec_path=>"/Users/expo/workingdir/build/node_modules/react-native-safe-area-context/react-native-safe-area-context.podspec", :script_phases=>[]}, {:configurations=>[], :name=>"react-native-screens", :root=>"/Users/expo/workingdir/build/node_modules/react-native-screens", :path=>"../node_modules/react-native-screens", :podspec_path=>"/Users/expo/workingdir/build/node_modules/react-native-screens/RNScreens.podspec", :script_phases=>[]}, {:configurations=>[], :name=>"react-native-svg", :root=>"/Users/expo/workingdir/build/node_modules/react-native-svg", :path=>"../node_modules/react-native-svg", :podspec_path=>"/Users/expo/workingdir/build/node_modules/react-native-svg/RNSVG.podspec", :script_phases=>[]}], :ios_project_root_path=>"/Users/expo/workingdir/build/ios", :react_native_path=>"../node_modules/react-native"}
+Adding a custom script phase for Pod RNFBApp: [RNFB] Core Configuration
+Auto-linking React Native modules for target `innershield`: RNCAsyncStorage, RNFBApp, RNFBAuth, RNGestureHandler, RNPaywalls, RNPurchases, RNSVG, RNScreens, and react-native-safe-area-context
+Framework build type is static library
+[ReactNativeDependencies] Setting up ReactNativeDependencies...
+[ReactNativeDependencies] Building from source: false
+[ReactNativeDependencies] Using release tarball
+[ReactNativeDependencies] Using tarball from URL: https://repo1.maven.org/maven2/com/facebook/react/react-native-artifacts/0.81.4/react-native-artifacts-0.81.4-reactnative-dependencies-debug.tar.gz
+% Total    % Received % Xferd  Average Speed   Time
+Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+100 18.3M  100 18.3M    0     0   193M      0 --:--:-- --:--:-- --:
+--:--  195M
+% Total    % Received % Xferd  Average Speed   Time    Time     Time
+Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+100  9.9M  100  9.9M    0     0   206M      0 --:--:-- --:--:-- --:--:--  208M
+[ReactNativeDependencies] Source: {:http=>"https://repo1.maven.org/maven2/com/facebook/react/react-native-artifacts/0.81.4/react-native-artifacts-0.81.4-reactnative-dependencies-debug.tar.gz"}
+[ReactNativeCore] Setting up ReactNativeCore...
+[ReactNativeCore] Building from source: false
+[ReactNativeCore] Using tarball from URL: https://repo1.maven.org/maven2/com/facebook/react/react-native-artifacts/0.81.4/react-native-artifacts-0.81.4-reactnative-core-debug.tar.gz
+% Total    % Received % Xferd  Average Speed   Time    Time     Ti
+me  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+100 78.5M  100 78.5M    0     0   266M      0 --:--:-- --:--:-- --:--:--
+267M
+% Total    % Received % Xferd  Average Speed   Time    Time     Time
+Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+9 26.3M    9 2659k    0     0  46.0M      0 --:--:-- --:--:-- --:--:-- 45.5M
+100 26.3M  100 26.3M    0
+0   259M      0 --:--:-- --:--:-- --:--:--  258M
+[ReactNativeCore] Source: {:http=>"https://repo1.maven.org/maven2/com/facebook/react/react-native-artifacts/0.81.4/react-native-artifacts-0.81.4-reactnative-core-debug.tar.gz"}
+Configuring the target with the New Architecture
+[ReactNativeCore] Using React Native Core and React Native Dependencies prebuilt versions.
+[Codegen] Analyzing /Users/expo/workingdir/build/package.json
+[Codegen] Searching for codegen-enabled libraries in the app.
+[Codegen] The "codegenConfig" field is not defined in package.json. Assuming there is nothing to generate at the app level.
+[Codegen] Searching for codegen-enabled libraries in react-native.config.js
+[Codegen] Found @react-native-async-storage/async-storage
+[Codegen] Found react-native-gesture-handler
+[Codegen] Found react-native-safe-area-context
+[Codegen] Found react-native-screens
+[Codegen] Found react-native-svg
+[Codegen] Processing rnasyncstorage
+[Codegen] Searching for podspec in the project dependencies.
+[Codegen] Supported Apple platforms: ios, macos, tvos, visionos for rnasyncstorage
+[Codegen] Processing rngesturehandler_codegen
+[Codegen] Searching for podspec in the project dependencies.
+[Codegen] Supported Apple platforms: ios, macos, tvos, visionos for rngesturehandler_codegen
+[Codegen] Processing safeareacontext
+[Codegen] Searching for podspec in the project dependencies.
+[Codegen] Supported Apple platforms: ios, macos, tvos, visionos for safeareacontext
+[Codegen] Processing rnscreens
+[Codegen] Searching for podspec in the project dependencies.
+[Codegen] Supported Apple platforms: ios, tvos, visionos for rnscreens
+[Codegen] Processing rnsvg
+[Codegen] Searching for podspec in the project dependencies.
+[Codegen] Supported Apple platforms: ios, macos, tvos, visionos for rnsvg
+[Codegen] Generating Native Code for rnasyncstorage - ios
+[Codegen] Generated artifacts: /Users/expo/workingdir/build/ios/build/generated/ios
+[Codegen] Generating Native Code for rngesturehandler_codegen - ios
+[Codegen] Generated artifacts: /Users/expo/workingdir/build/ios/build/generated/ios
+[Codegen] Generating Native Code for safeareacontext - ios
+[Codegen] Generated artifacts: /Users/expo/workingdir/build/ios/build/generated/ios
+[Codegen] Generating Native Code for rnscreens - ios
+[Codegen] Generated artifacts: /Users/expo/workingdir/build/ios/build/generated/ios
+[Codegen] Generating Native Code for rnsvg - ios
+[Codegen] Generated artifacts: /Users/expo/workingdir/build/ios/build/generated/ios
+[Codegen] Generating RCTThirdPartyComponentsProvider.h
+[Codegen] Generated artifact: /Users/expo/workingdir/build/ios/build/generated/ios/RCTThirdPartyComponentsProvider.h
+[Codegen] Generating RCTThirdPartyComponentsProvider.mm
+[Codegen] Generated artifact: /Users/expo/workingdir/build/ios/build/generated/ios/RCTThirdPartyComponentsProvider.mm
+[Codegen] Generating RCTModulesProvider.h
+[Codegen] Generated artifact: /Users/expo/workingdir/build/ios/build/generated/ios/RCTModuleProviders.h
+[Codegen] Generating RCTModuleProviders.mm
+[Codegen] Generated artifact: /Users/expo/workingdir/build/ios/build/generated/ios/RCTModuleProviders.mm
+[Codegen] Generating RCTAppDependencyProvider
+[Codegen] Generated artifact: /Users/expo/workingdir/build/ios/build/generated/ios/RCTAppDependencyProvider.h
+[Codegen] Generated artifact: /Users/expo/workingdir/build/ios/build/generated/ios/RCTAppDependencyProvider.mm
+[Codegen] Generated podspec: /Users/expo/workingdir/build/ios/build/generated/ios/ReactAppDependencyProvider.podspec
+[Codegen] Generated podspec: /Users/expo/workingdir/build/ios/build/generated/ios/ReactCodegen.podspec
+[Codegen] Done.
+Analyzing dependencies
+Fetching podspec for `React-Core-prebuilt` from `../node_modules/react-native/React-Core-prebuilt.podspec`
+[ReactNativeCore] Using tarball from URL: https://repo1.maven.org/maven2/com/facebook/react/react-native-artifacts/0.81.4/react-native-artifacts-0.81.4-reactnative-core-debug.tar.gz
+Fetching podspec for `ReactNativeDependencies` from `../node_modules/react-native/third-party-podspecs/ReactNativeDependencies.podspec`
+[ReactNativeDependencies] Using release tarball
+[ReactNativeDependencies] Using tarball from URL: https://repo1.maven.org/maven2/com/facebook/react/react-native-artifacts/0.81.4/react-native-artifacts-0.81.4-reactnative-dependencies-debug.tar.gz
+Fetching podspec for `hermes-engine` from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`
+[Hermes] Using release tarball from URL: https://repo1.maven.org/maven2/com/facebook/react/react-native-artifacts/0.81.4/react-native-artifacts-0.81.4-hermes-ios-debug.tar.gz
+% Total    % Received % Xferd  Average Speed   Time    Time     Tim
+e  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+100 29.0M  100 29.0M    0     0   229M      0 --:--:-- --
+:--:-- --:--:--  230M
+% Total    % Received % Xferd  Average Speed   Time    Time
+Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+100 20.3M  100 20.3M    0     0   222M      0 --:--:-- --:--:-- --:--:--  223M
+Adding spec repo `trunk` with CDN `https://cdn.cocoapods.org/`
+Downloading dependencies
+Installing EXAV (16.0.7)
+Installing EXApplication (7.0.7)
+Installing EXConstants (18.0.8)
+Installing EXJSONUtils (0.15.0)
+Installing EXManifests (1.0.8)
+Installing EXNotifications (0.32.11)
+Installing EXUpdatesInterface (2.0.0)
+Installing Expo (54.0.7)
+Installing ExpoAppleAuthentication (8.0.7)
+Installing ExpoAsset (12.0.8)
+Installing ExpoFileSystem (19.0.14)
+Installing ExpoFont (14.0.8)
+Installing ExpoKeepAwake (15.0.7)
+Installing ExpoLinearGradient (15.0.7)
+Installing ExpoModulesCore (3.0.15)
+Installing FBLazyVector (0.81.4)
+Installing Firebase (12.2.0)
+Installing FirebaseAppCheckInterop (12.2.0)
+Installing FirebaseAuth (12.2.0)
+Installing FirebaseAuthInterop (12.2.0)
+Installing FirebaseCore (12.2.0)
+Installing FirebaseCoreExtension (12.2.0)
+Installing FirebaseCoreInternal (12.2.0)
+Installing GTMSessionFetcher (5.0.0)
+Installing GoogleUtilities (8.1.0)
+Installing PurchasesHybridCommon (17.7.0)
+Installing PurchasesHybridCommonUI (17.7.0)
+Installing RCTDeprecation (0.81.4)
+Installing RCTRequired (0.81.4)
+Installing RCTTypeSafety (0.81.4)
+Installing RNCAsyncStorage (2.2.0)
+Installing RNFBApp (23.3.1)
+Installing RNFBAuth (23.3.1)
+Installing RNGestureHandler (2.28.0)
+Installing RNPaywalls (9.5.0)
+Installing RNPurchases (9.5.0)
+Installing RNSVG (15.12.1)
+Installing RNScreens (4.16.0)
+Installing React (0.81.4)
+Installing React-Core (0.81.4)
+Installing React-Core-prebuilt (0.81.4)
+Installing React-CoreModules (0.81.4)
+Installing React-Fabric (0.81.4)
+Installing React-FabricComponents (0.81.4)
+Installing React-FabricImage (0.81.4)
+Installing React-ImageManager (0.81.4)
+Installing React-Mapbuffer (0.81.4)
+Installing React-NativeModulesApple (0.81.4)
+Installing React-RCTActionSheet (0.81.4)
+Installing React-RCTAnimation (0.81.4)
+Installing React-RCTAppDelegate (0.81.4)
+Installing React-RCTBlob (0.81.4)
+Installing React-RCTFBReactNativeSpec (0.81.4)
+Installing React-RCTFabric (0.81.4)
+Installing React-RCTImage (0.81.4)
+Installing React-RCTLinking (0.81.4)
+Installing React-RCTNetwork (0.81.4)
+Installing React-RCTRuntime (0.81.4)
+Installing React-RCTSettings (0.81.4)
+Installing React-RCTText (0.81.4)
+Installing React-RCTVibration (0.81.4)
+Installing React-RuntimeApple (0.81.4)
+Installing React-RuntimeCore (0.81.4)
+Installing React-RuntimeHermes (0.81.4)
+Installing React-callinvoker (0.81.4)
+Installing React-cxxreact (0.81.4)
+Installing React-debug (0.81.4)
+Installing React-defaultsnativemodule (0.81.4)
+Installing React-domnativemodule (0.81.4)
+Installing React-featureflags (0.81.4)
+Installing React-featureflagsnativemodule (0.81.4)
+Installing React-graphics (0.81.4)
+Installing React-hermes (0.81.4)
+Installing React-idlecallbacksnativemodule (0.81.4)
+Installing React-jserrorhandler (0.81.4)
+Installing React-jsi (0.81.4)
+Installing React-jsiexecutor (0.81.4)
+Installing React-jsinspector (0.81.4)
+Installing React-jsinspectorcdp (0.81.4)
+Installing React-jsinspectornetwork (0.81.4)
+Installing React-jsinspectortracing (0.81.4)
+Installing React-jsitooling (0.81.4)
+Installing React-jsitracing (0.81.4)
+Installing React-logger (0.81.4)
+Installing React-microtasksnativemodule (0.81.4)
+Installing React-oscompat (0.81.4)
+Installing React-perflogger (0.81.4)
+Installing React-performancetimeline (0.81.4)
+Installing React-rendererconsistency (0.81.4)
+Installing React-renderercss (0.81.4)
+Installing React-rendererdebug (0.81.4)
+Installing React-runtimeexecutor (0.81.4)
+Installing React-runtimescheduler (0.81.4)
+Installing React-timing (0.81.4)
+Installing React-utils (0.81.4)
+Installing ReactAppDependencyProvider (0.81.4)
+Installing ReactCodegen (0.81.4)
+Installing ReactCommon (0.81.4)
+Installing ReactNativeDependencies (0.81.4)
+Installing RecaptchaInterop (101.0.0)
+Installing RevenueCat (5.39.0)
+Installing RevenueCatUI (5.39.0)
+Installing Yoga (0.0.0)
+Installing expo-dev-client (6.0.12)
+Installing expo-dev-launcher (6.0.11)
+Installing expo-dev-menu (7.0.11)
+Installing expo-dev-menu-interface (2.0.0)
+Installing hermes-engine (0.81.4)
+Installing react-native-safe-area-context (5.6.1)
+[!] The following Swift pods cannot yet be integrated as static libraries:
+The Swift pod `FirebaseAuth` depends upon `FirebaseAuthInterop`, `FirebaseAppCheckInterop`, `FirebaseCore`, `FirebaseCoreExtension`, `GoogleUtilities`, and `RecaptchaInterop`, which do not define modules. To opt into those targets generating module maps (which is necessary to import them from Swift when building as static libraries), you may set `use_modular_headers!` globally in your Podfile, or specify `:modular_headers => true` for particular dependencies.
+The Swift pod `FirebaseCoreInternal` depends upon `GoogleUtilities`, which does not define modules. To opt into those targets generating module maps (which is necessary to import them from Swift when building as static libraries), you may set `use_modular_headers!` globally in your Podfile, or specify `:modular_headers => true` for particular dependencies.
+Error: Unknown error. See logs of the Install pods build phase for more inform
