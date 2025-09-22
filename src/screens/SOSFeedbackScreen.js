@@ -103,7 +103,7 @@ const SOSFeedbackScreen = ({ navigation, route }) => {
       console.error("Failed to save SOS session data", error);
     }
     
-    navigation.navigate('Main', { screen: 'Home' });
+    navigation.replace("HomeScreen");
   };
 
   const renderStars = (count) => {
