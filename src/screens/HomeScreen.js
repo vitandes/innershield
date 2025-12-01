@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,11 @@ import {
   TouchableOpacity,
   Alert,
   SafeAreaView,
+  Animated,
+  Easing,
+  Dimensions,
+  Platform,
+  StatusBar
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,11 +20,64 @@ import { useTheme } from '../context/ThemeContext';
 import { dailyMessages } from '../data/dailyMessages';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+const { width } = Dimensions.get('window');
+
 const HomeScreen = ({ navigation }) => {
-  const { colors, styles: themeStyles } = useTheme();
+  const { colors } = useTheme();
 
+  // Animations
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  // Logic State
   const [dailyMessage, setDailyMessage] = useState('');
+  const [dailyMissions, setDailyMissions] = useState([
+    { id: 1, title: 'Breathing', completed: false, icon: 'leaf-outline' },
+    { id: 2, title: 'Journal', completed: false, icon: 'book-outline' },
+    { id: 3, title: 'Sleep', completed: false, icon: 'moon-outline' }
+  ]);
 
+  // --- Effects ---
+
+  // Entry Animation
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 800,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  // SOS Pulse Animation
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.05,
+          duration: 1500,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1500,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
+
+  // Logic: Track Active Day
   useEffect(() => {
     const trackActiveDay = async () => {
       try {
@@ -45,10 +103,10 @@ const HomeScreen = ({ navigation }) => {
         console.error("Failed to track active day:", error);
       }
     };
-
     trackActiveDay();
   }, []);
 
+  // Logic: Daily Message
   useEffect(() => {
     const updateDailyMessage = async () => {
       try {
@@ -85,12 +143,10 @@ const HomeScreen = ({ navigation }) => {
           await AsyncStorage.setItem('lastDailyMessageUpdate', now.toISOString());
           setDailyMessage(selectedMessage);
         } else {
-          // If no update is needed, load the last used message
           if (usedIndices.length > 0) {
             const lastUsedIndex = usedIndices[usedIndices.length - 1];
             setDailyMessage(dailyMessages[lastUsedIndex]);
           } else {
-            // Fallback to a random message if something is wrong
             const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
             setDailyMessage(dailyMessages[dayOfYear % dailyMessages.length]);
           }
@@ -103,39 +159,29 @@ const HomeScreen = ({ navigation }) => {
     };
 
     updateDailyMessage();
-    const interval = setInterval(updateDailyMessage, 60 * 60 * 1000); // Check every hour
-
+    const interval = setInterval(updateDailyMessage, 60 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
-  
-  // Daily missions state - Updated to reflect only available functionalities
-  const [dailyMissions, setDailyMissions] = useState([
-    { id: 1, title: 'Breathing exercise', completed: false, icon: 'leaf' },
-    { id: 2, title: 'Journal writing', completed: false, icon: 'book' },
-    { id: 3, title: 'Sleep melodies', completed: false, icon: 'moon' }
-  ]);
 
-  // Load daily missions from AsyncStorage on component mount
+  // Logic: Load Missions
   useFocusEffect(
     useCallback(() => {
       const loadDailyMissions = async () => {
         try {
           const today = new Date().toISOString().split('T')[0];
           const lastMissionDate = await AsyncStorage.getItem('lastMissionDate');
-          
+
           const defaultMissions = [
-            { id: 1, title: 'Breathing exercise', completed: false, icon: 'leaf' },
-            { id: 2, title: 'Journal writing', completed: false, icon: 'book' },
-            { id: 3, title: 'Sleep melodies', completed: false, icon: 'moon' }
+            { id: 1, title: 'Breathing', completed: false, icon: 'leaf-outline' },
+            { id: 2, title: 'Journal', completed: false, icon: 'book-outline' },
+            { id: 3, title: 'Sleep', completed: false, icon: 'moon-outline' }
           ];
-          
-          // Si es un nuevo día o no hay fecha guardada, reiniciar misiones
+
           if (!lastMissionDate || lastMissionDate !== today) {
             await AsyncStorage.setItem('dailyMissions', JSON.stringify(defaultMissions));
             await AsyncStorage.setItem('lastMissionDate', today);
             setDailyMissions(defaultMissions);
           } else {
-            // Cargar misiones existentes del mismo día
             const storedMissions = await AsyncStorage.getItem('dailyMissions');
             if (storedMissions) {
               setDailyMissions(JSON.parse(storedMissions));
@@ -148,537 +194,485 @@ const HomeScreen = ({ navigation }) => {
           console.error('Error loading daily missions:', error);
         }
       };
-
       loadDailyMissions();
     }, [])
   );
-  
-  const completedMissions = dailyMissions.filter(mission => mission.completed).length;
-  const totalMissions = dailyMissions.length;
-  const progressPercentage = Math.round((completedMissions / totalMissions) * 100);
 
-  const handleSOSPress = () => {
-    navigation.navigate('SOS');
-  };
-
-  // Function to get progress color
-  const getProgressColor = (percentage) => {
-    if (percentage >= 80) return '#B39DDB'; // Púrpura
-    if (percentage >= 50) return '#F8BBD9'; // Rosa suave
-    return '#F44336'; // Rojo
-  };
-
-  // Function to toggle mission status and navigate to corresponding screen
+  // Logic: Toggle Mission
   const toggleMission = async (missionId) => {
-    const updatedMissions = dailyMissions.map(mission => 
-      mission.id === missionId 
+    const updatedMissions = dailyMissions.map(mission =>
+      mission.id === missionId
         ? { ...mission, completed: !mission.completed }
         : mission
     );
-    
+
     setDailyMissions(updatedMissions);
-    
+
     try {
-      // Save updated missions to AsyncStorage
       await AsyncStorage.setItem('dailyMissions', JSON.stringify(updatedMissions));
-      
-      // Update mood data colors based on completed missions
+
+      // Update mood data logic (simplified for brevity, keeping core logic)
       const completedCount = updatedMissions.filter(mission => mission.completed).length;
-      
-      // Get current mood data
       const storedMoodData = await AsyncStorage.getItem('moodData');
       if (storedMoodData) {
         const moodData = JSON.parse(storedMoodData);
-        
-        // Get current day
-        const today = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
+        const today = new Date().getDay();
         const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const currentDay = dayNames[today];
-        
-        // Update today's mood data with mission completion
+
         const updatedMoodData = moodData.map(item => {
           if (item.day === currentDay) {
-            let color = '#E0E0E0'; // Default color (gris)
-            
-            // Assign color based on completed missions
-            if (completedCount === 3) {
-              color = '#4CAF50'; // Verde para 3 misiones
-            } else if (completedCount === 2) {
-              color = '#FFC107'; // Amarillo para 2 misiones
-            } else if (completedCount === 1 || completedCount === 0) {
-              color = '#F44336'; // Rojo para 0-1 misiones
-            }
-            
+            let color = '#E0E0E0';
+            if (completedCount === 3) color = '#4CAF50';
+            else if (completedCount === 2) color = '#FFC107';
+            else if (completedCount === 1 || completedCount === 0) color = '#F44336';
             return { ...item, color, completedMissions: completedCount };
           }
           return item;
         });
-        
         await AsyncStorage.setItem('moodData', JSON.stringify(updatedMoodData));
       }
     } catch (error) {
-      console.error('Error updating missions and mood data:', error);
+      console.error('Error updating missions:', error);
     }
-    
-    // Navigate to corresponding screen when mission is activated
+
+    // Navigation
     const mission = dailyMissions.find(m => m.id === missionId);
     if (mission && !mission.completed) {
       switch (missionId) {
-        case 1: // Breathing exercise
-          navigation.navigate('Breathing');
-          break;
-        case 2: // Journal writing
-          navigation.navigate('Journal');
-          break;
-        case 3: // Sleep melodies
-          navigation.navigate('SleepMelodies');
-          break;
-        default:
-          break;
+        case 1: navigation.navigate('Breathing'); break;
+        case 2: navigation.navigate('Journal'); break;
+        case 3: navigation.navigate('SleepMelodies'); break;
       }
     }
   };
 
+  const handleSOSPress = () => navigation.navigate('SOS');
+  const handleBreathingGuided = () => navigation.navigate('Breathing');
+  const handleMyRecord = () => navigation.navigate('Journal');
+  const handleSleepSounds = () => navigation.navigate('SleepMelodies');
 
-
-  const handleBreathingGuided = () => {
-    navigation.navigate('Breathing');
-  };
-
-  const handleGroundingTechniques = () => {
-    Alert.alert(
-      'Grounding Techniques',
-      '5-4-3-2-1 technique to connect with the present:\n\n• 5 things you can SEE\n• 4 things you can TOUCH\n• 3 things you can HEAR\n• 2 things you can SMELL\n• 1 thing you can TASTE',
-      [{ text: 'Got it' }]
-    );
-  };
-
-  const handleMyRecord = () => {
-    navigation.navigate('Journal');
-  };
-
-  // Funcionalidades comentadas para implementar después
-  /*
-  const handleVisualization = () => {
-    Alert.alert(
-      'Visualization',
-      'Guided visualization exercises:\n\n🌅 Safe place\n🌊 Beach relaxation\n🏔️ Mountain of calm\n🌸 Garden of peace\n\nChoose a visualization to begin.',
-      [{ text: 'Start' }]
-    );
-  };
-  */
-
-  const handleSleepSounds = () => {
-    navigation.navigate('SleepMelodies');
-  };
-
-
-
-  const styles = getStyles(colors);
+  const completedMissions = dailyMissions.filter(mission => mission.completed).length;
+  const totalMissions = dailyMissions.length;
+  const progressPercentage = Math.round((completedMissions / totalMissions) * 100);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Personalized greeting */}
-        <View style={styles.welcomeSection}>
-          <View>
-            <Text style={styles.welcomeText}>Hello! 👋</Text>
-            <Text style={styles.welcomeSubtext}>Your wellbeing is our priority</Text>
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+      <LinearGradient
+        colors={['#F3E5F5', '#E3F2FD', '#FCE4EC']} // Soft Purple, Blue, Pink
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.backgroundGradient}
+      />
+
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+
+          {/* Header */}
+          <Animated.View style={[styles.header, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+            <View>
+              <Text style={styles.greeting}>Hello! 👋</Text>
+              <Text style={styles.subGreeting}>Your calm space is here.</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Profile')}
+              style={styles.profileButton}
+            >
+              <LinearGradient
+                colors={['#FFFFFF', '#F5F5F5']}
+                style={styles.profileGradient}
+              >
+                <Ionicons name="person" size={24} color="#5C6BC0" />
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
+
+          {/* SOS Button */}
+          <View style={styles.sosContainer}>
+            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={handleSOSPress}
+                style={styles.sosButtonWrapper}
+              >
+                <LinearGradient
+                  colors={['#FF5252', '#D32F2F']}
+                  style={styles.sosButton}
+                  start={{ x: 0.3, y: 0 }}
+                  end={{ x: 0.8, y: 1 }}
+                >
+                  <View style={styles.sosInnerGlow} />
+                  <Ionicons name="warning" size={48} color="white" />
+                  <Text style={styles.sosText}>SOS</Text>
+                  <Text style={styles.sosSubText}>Panic Support</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </Animated.View>
           </View>
-          <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
-            <Ionicons name="person-circle-outline" size={40} color={colors.text} />
-          </TouchableOpacity>
-        </View>
 
-        {/* Prominent SOS Button */}
-        <TouchableOpacity style={styles.sosButton} onPress={handleSOSPress}>
-          <LinearGradient
-            colors={['#FF6B6B', '#FF8E8E']}
-            style={styles.sosGradient}
-          >
-            <Ionicons name="warning" size={40} color="white" />
-            <Text style={styles.sosButtonText}>SOS</Text>
-            <Text style={styles.sosButtonSubtext}>Immediate help</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-
-        {/* Daily Missions */}
-        <View style={styles.dailyMissionsSection}>
-          <View style={styles.missionHeader}>
-            <Text style={styles.sectionTitle}>Daily Missions</Text>
-            <View style={styles.progressContainer}>
-              <View style={[styles.progressBar, { backgroundColor: getProgressColor(progressPercentage) }]}>
-                <Text style={styles.progressPercentage}>{progressPercentage}%</Text>
+          {/* Daily Missions */}
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Daily Missions</Text>
+              <View style={styles.miniProgress}>
+                <Text style={styles.miniProgressText}>{progressPercentage}%</Text>
               </View>
             </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.missionsScroll}
+            >
+              {dailyMissions.map((mission) => (
+                <TouchableOpacity
+                  key={mission.id}
+                  style={[styles.missionCard, mission.completed && styles.missionCardCompleted]}
+                  onPress={() => toggleMission(mission.id)}
+                >
+                  <LinearGradient
+                    colors={mission.completed ? ['#E8F5E9', '#C8E6C9'] : ['#FFFFFF', '#F8F9FA']}
+                    style={styles.missionGradient}
+                  >
+                    <View style={[styles.missionIconContainer, mission.completed && styles.missionIconCompleted]}>
+                      <Ionicons
+                        name={mission.completed ? 'checkmark' : mission.icon}
+                        size={22}
+                        color={mission.completed ? '#FFFFFF' : '#7E57C2'}
+                      />
+                    </View>
+                    <Text style={[styles.missionTitle, mission.completed && styles.missionTitleCompleted]}>
+                      {mission.title}
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
-          
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.missionsSlider}
-          >
-            {dailyMissions.map((mission) => (
-              <TouchableOpacity 
-                key={mission.id} 
-                style={[
-                  styles.missionCard,
-                  mission.completed && styles.missionCardCompleted
-                ]}
-                onPress={() => toggleMission(mission.id)}
-              >
-                <View style={[
-                  styles.missionIcon,
-                  { backgroundColor: mission.completed ? '#B39DDB' : '#E0E0E0' }
-                ]}>
-                  <Ionicons 
-                    name={mission.completed ? 'checkmark' : mission.icon} 
-                    size={20} 
-                    color={mission.completed ? 'white' : '#666'} 
-                  />
-                </View>
-                <Text style={[
-                  styles.missionTitle,
-                  mission.completed && styles.missionTitleCompleted
-                ]}>
-                  {mission.title}
-                </Text>
+
+          {/* Start Here */}
+          <View style={styles.sectionContainer}>
+            <Text style={styles.sectionTitle}>Start Here</Text>
+            <View style={styles.gridContainer}>
+              {/* Breathe */}
+              <TouchableOpacity style={styles.gridItem} onPress={handleBreathingGuided}>
+                <LinearGradient colors={['#E3F2FD', '#BBDEFB']} style={styles.gridGradient}>
+                  <View style={styles.gridIconBadge}>
+                    <Ionicons name="leaf" size={24} color="#1976D2" />
+                  </View>
+                  <Text style={styles.gridTitle}>Breathe</Text>
+                  <Text style={styles.gridSubtitle}>Calm down</Text>
+                </LinearGradient>
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-          
-          <Text style={styles.progressText}>
-            {completedMissions} of {totalMissions} missions completed
-          </Text>
-        </View>
 
-        {/* Main Tools Section */}
-        <View style={styles.mainToolsSection}>
-          <Text style={styles.sectionTitle}>Start here</Text>
-          
-          {/* First row */}
-           <View style={styles.toolsRow}>
-             <TouchableOpacity style={styles.toolCard} onPress={handleBreathingGuided}>
-               <LinearGradient colors={['#4FC3F7', '#29B6F6']} style={styles.toolGradient}>
-                 <Ionicons name="leaf" size={32} color="white" />
-                 <Text style={styles.toolTitle}>Breathe</Text>
-               </LinearGradient>
-             </TouchableOpacity>
-             
-             {/* Lessons - Comentado para implementar después */}
-             {/*
-             <TouchableOpacity style={styles.toolCard} onPress={() => navigation.navigate('Shield')}>
-               <LinearGradient colors={['#81C784', '#66BB6A']} style={styles.toolGradient}>
-                 <Ionicons name="shield-checkmark" size={32} color="white" />
-                 <Text style={styles.toolTitle}>Lessons</Text>
-               </LinearGradient>
-             </TouchableOpacity>
-             */}
-             
-             <TouchableOpacity style={styles.toolCard} onPress={handleMyRecord}>
-               <LinearGradient colors={['#BA68C8', '#AB47BC']} style={styles.toolGradient}>
-                 <Ionicons name="book" size={32} color="white" />
-                 <Text style={styles.toolTitle}>Journal</Text>
-               </LinearGradient>
-             </TouchableOpacity>
-           </View>
-          
-          {/* Second row */}
-           <View style={styles.toolsRow}>
-             {/* Play - Comentado para implementar después */}
-             {/*
-             <TouchableOpacity style={styles.toolCard} onPress={handleGroundingTechniques}>
-               <LinearGradient colors={['#FFB74D', '#FFA726']} style={styles.toolGradient}>
-                 <Ionicons name="game-controller" size={32} color="white" />
-                 <Text style={styles.toolTitle}>Play</Text>
-               </LinearGradient>
-             </TouchableOpacity>
-             */}
-             
-             <TouchableOpacity style={styles.toolCard} onPress={handleSleepSounds}>
-               <LinearGradient colors={['#5C6BC0', '#3F51B5']} style={styles.toolGradient}>
-                 <Ionicons name="moon" size={32} color="white" />
-                 <Text style={styles.toolTitle}>Sleep melodies</Text>
-               </LinearGradient>
-             </TouchableOpacity>
-           </View>
-          
-          {/* Third row - Comentado para implementar después */}
-           {/*
-           <View style={styles.toolsRow}>
-             <TouchableOpacity style={styles.toolCard} onPress={handleVisualization}>
-               <LinearGradient colors={['#FF8A65', '#FF7043']} style={styles.toolGradient}>
-                 <Ionicons name="eye" size={32} color="white" />
-                 <Text style={styles.toolTitle}>Visualize</Text>
-               </LinearGradient>
-             </TouchableOpacity>
-           </View>
-           */}
-        </View>
+              {/* Journal */}
+              <TouchableOpacity style={styles.gridItem} onPress={handleMyRecord}>
+                <LinearGradient colors={['#F3E5F5', '#E1BEE7']} style={styles.gridGradient}>
+                  <View style={[styles.gridIconBadge, { backgroundColor: 'rgba(123, 31, 162, 0.1)' }]}>
+                    <Ionicons name="book" size={24} color="#7B1FA2" />
+                  </View>
+                  <Text style={styles.gridTitle}>Journal</Text>
+                  <Text style={styles.gridSubtitle}>Express yourself</Text>
+                </LinearGradient>
+              </TouchableOpacity>
 
+              {/* Sleep */}
+              <TouchableOpacity style={[styles.gridItem, styles.gridItemFull]} onPress={handleSleepSounds}>
+                <LinearGradient colors={['#E8EAF6', '#C5CAE9']} style={styles.gridGradientHorizontal}>
+                  <View style={[styles.gridIconBadge, { backgroundColor: 'rgba(48, 63, 159, 0.1)' }]}>
+                    <Ionicons name="moon" size={24} color="#303F9F" />
+                  </View>
+                  <View style={styles.gridTextContainer}>
+                    <Text style={styles.gridTitle}>Sleep Melodies</Text>
+                    <Text style={styles.gridSubtitle}>Drift off to sleep</Text>
+                  </View>
+                  <Ionicons name="play-circle-outline" size={32} color="#303F9F" style={{ opacity: 0.6 }} />
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
 
-        
-        {/* Daily Motivational Message */}
-          <View style={styles.motivationalSection}>
-            <LinearGradient colors={['#E1BEE7', '#CE93D8']} style={styles.motivationalCard}>
-              <Ionicons name="heart" size={24} color="#7B1FA2" />
-              <Text style={styles.motivationalTitle}>Message of the Day</Text>
-              <Text style={styles.motivationalText}>{dailyMessage}</Text>
+          {/* Daily Message */}
+          <View style={styles.messageContainer}>
+            <LinearGradient colors={['#FFF', '#FFF']} style={styles.messageCard}>
+              <View style={styles.quoteIcon}>
+                <Ionicons name="heart" size={20} color="#EC407A" />
+              </View>
+              <Text style={styles.messageText}>"{dailyMessage}"</Text>
             </LinearGradient>
           </View>
 
-         
-
-         {/* Wellness reminder */}
-         <View style={styles.reminderSection}>
-          <View style={styles.reminderCard}>
-            <Ionicons name="bulb-outline" size={24} color="#FF9800" />
-            <Text style={styles.reminderText}>
-              Remember: Small daily steps build a strong shield.
-            </Text>
-          </View>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 };
 
-const getStyles = (colors) => StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollContent: {
-    padding: 20,
+  backgroundGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
   },
-  welcomeSection: {
+  safeArea: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 24,
+    paddingBottom: 40,
+  },
+
+  // Header
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
-    paddingHorizontal: 20,
+    marginBottom: 32,
+    marginTop: Platform.OS === 'android' ? 10 : 0,
   },
-  welcomeText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
-  },
-  welcomeSubtext: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-  },
-  // Botón SOS
-  sosButton: {
-    marginBottom: 25,
-    borderRadius: 20,
-    elevation: 8,
-    shadowColor: '#FF6B6B',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
-  sosGradient: {
-    padding: 25,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sosButtonText: {
+  greeting: {
     fontSize: 32,
-    fontWeight: 'bold',
-    color: 'white',
-    marginTop: 8,
+    fontWeight: '800',
+    color: '#263238',
+    letterSpacing: -0.5,
   },
-  sosButtonSubtext: {
+  subGreeting: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: '#78909C',
     marginTop: 4,
+    fontWeight: '500',
   },
-  // Sección Principal de Herramientas
-  mainToolsSection: {
-    marginBottom: 25,
+  profileButton: {
+    shadowColor: "#5C6BC0",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  profileGradient: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'white',
+  },
+
+  // SOS Button
+  sosContainer: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  sosButtonWrapper: {
+    shadowColor: "#FF5252",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 15,
+  },
+  sosButton: {
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 4,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  sosInnerGlow: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    right: 10,
+    bottom: 10,
+    borderRadius: 100,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  sosText: {
+    fontSize: 36,
+    fontWeight: '900',
+    color: 'white',
+    marginTop: 5,
+    letterSpacing: 1,
+  },
+  sosSubText: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.9)',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+
+  // Sections
+  sectionContainer: {
+    marginBottom: 32,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 20,
+    fontWeight: '700',
+    color: '#37474F',
+  },
+  miniProgress: {
+    backgroundColor: '#E1BEE7',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  miniProgressText: {
+    fontSize: 12,
     fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 15,
-  },
-  toolsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 15,
-  },
-  toolCard: {
-    flex: 1,
-    marginHorizontal: 8,
-
-    borderRadius: 20,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  toolGradient: {
-    padding: 20,
-    borderRadius: 20,
-    alignItems: 'center',
-    minHeight: 100,
-    justifyContent: 'center',
-  },
-  toolTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: 'white',
-    textAlign: 'center',
-    marginTop: 8,
+    color: '#7B1FA2',
   },
 
-  // Misiones Diarias
-  dailyMissionsSection: {
-    marginBottom: 25,
-    backgroundColor: '#F8F9FA',
-    padding: 20,
-    borderRadius: 15,
-  },
-  missionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  progressContainer: {
-    alignItems: 'center',
-  },
-  progressBar: {
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-    minWidth: 60,
-    alignItems: 'center',
-  },
-  progressPercentage: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  missionsSlider: {
-    paddingHorizontal: 5,
-    paddingBottom: 15,
+  // Missions
+  missionsScroll: {
+    paddingRight: 20,
   },
   missionCard: {
-    width: 120,
-    backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 12,
-    marginRight: 15,
-    alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    width: 110,
+    height: 130,
+    marginRight: 16,
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
   },
   missionCardCompleted: {
-    backgroundColor: '#E8F5E8',
-    borderWidth: 1,
-    borderColor: '#4CAF50',
+    shadowOpacity: 0,
+    elevation: 0,
   },
-  missionIcon: {
-    width: 40,
-    height: 40,
+  missionGradient: {
+    flex: 1,
     borderRadius: 20,
+    padding: 16,
+    justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  missionIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F3E5F5',
     justifyContent: 'center',
-    marginBottom: 8,
+    alignItems: 'center',
+  },
+  missionIconCompleted: {
+    backgroundColor: '#4CAF50',
   },
   missionTitle: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#333',
+    color: '#546E7A',
     textAlign: 'center',
   },
   missionTitleCompleted: {
-    color: '#4CAF50',
+    color: '#2E7D32',
     textDecorationLine: 'line-through',
   },
-  progressText: {
-    fontSize: 14,
-    color: '#4CAF50',
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  // Mensaje Motivacional
-  motivationalSection: {
-    marginBottom: 25,
-  },
-  motivationalCard: {
-    padding: 20,
-    borderRadius: 15,
-    alignItems: 'center',
-  },
-  motivationalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#7B1FA2',
-    marginTop: 8,
-    marginBottom: 10,
-  },
-  motivationalText: {
-    fontSize: 16,
-    color: '#7B1FA2',
-    textAlign: 'center',
-    lineHeight: 24,
-    fontStyle: 'italic',
-  },
-  // Estadísticas Inferiores
-  bottomStatsSection: {
+
+  // Start Here Grid
+  gridContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 25,
-    paddingHorizontal: 10,
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
-  statCard: {
-    alignItems: 'center',
-    padding: 15,
+  gridItem: {
+    width: (width - 48 - 16) / 2, // (Screen width - padding - gap) / 2
+    height: 140,
+    marginBottom: 16,
+    borderRadius: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 4,
   },
-  statTitle: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 8,
-    textAlign: 'center',
+  gridItemFull: {
+    width: '100%',
+    height: 100,
   },
-  progressCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#FF6B6B',
-    alignItems: 'center',
+  gridGradient: {
+    flex: 1,
+    borderRadius: 24,
+    padding: 20,
     justifyContent: 'center',
+    alignItems: 'flex-start',
   },
-  progressText: {
+  gridGradientHorizontal: {
+    flex: 1,
+    borderRadius: 24,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  gridIconBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: 'rgba(25, 118, 210, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  gridTextContainer: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  gridTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    
+    fontWeight: '700',
+    color: '#37474F',
+    marginBottom: 4,
   },
-  reminderSection: {
+  gridSubtitle: {
+    fontSize: 13,
+    color: '#78909C',
+  },
+
+  // Message
+  messageContainer: {
     marginBottom: 20,
   },
-  reminderCard: {
+  messageCard: {
+    padding: 24,
+    borderRadius: 24,
+    backgroundColor: 'white',
     flexDirection: 'row',
-    backgroundColor: '#FFF3E0',
-    padding: 15,
-    borderRadius: 10,
     alignItems: 'center',
+    shadowColor: "#EC407A",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 5,
   },
-  reminderText: {
-    marginLeft: 10,
-    fontSize: 14,
-    color: '#E65100',
+  quoteIcon: {
+    marginRight: 16,
+    backgroundColor: '#FCE4EC',
+    padding: 8,
+    borderRadius: 20,
+  },
+  messageText: {
     flex: 1,
-    lineHeight: 20,
+    fontSize: 15,
+    fontStyle: 'italic',
+    color: '#546E7A',
+    lineHeight: 22,
   },
 });
 

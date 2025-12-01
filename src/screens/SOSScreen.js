@@ -10,6 +10,9 @@ import {
   Alert,
   Linking,
   Platform,
+  StatusBar,
+  Dimensions,
+  Easing
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,11 +20,13 @@ import { Audio } from 'expo-av';
 import { useFocusEffect } from '@react-navigation/native';
 import { mindfulnessMessages } from '../data/mindfulnessMessages';
 
+const { width } = Dimensions.get('window');
+
 const SOSScreen = ({ navigation }) => {
   const [breathingActive, setBreathingActive] = useState(false);
-  const [breathingPhase, setBreathingPhase] = useState('preparation'); // 'preparation', 'inhale', 'hold', 'exhale', 'reflection'
+  const [breathingPhase, setBreathingPhase] = useState('preparation');
   const [breathingCount, setBreathingCount] = useState(0);
-  const [sessionPhase, setSessionPhase] = useState(0); // 0: preparation, 1: breathing, 2: reflection
+  const [sessionPhase, setSessionPhase] = useState(0);
   const [currentMessage, setCurrentMessage] = useState(0);
   const [sound, setSound] = useState(null);
   const [backgroundMusic, setBackgroundMusic] = useState(null);
@@ -29,31 +34,27 @@ const SOSScreen = ({ navigation }) => {
   const [totalSessionTime, setTotalSessionTime] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [lastPlayedSound, setLastPlayedSound] = useState(null);
-  const preparationMessageCountRef = useRef(0);
   const preparationPhaseHasRun = useRef(false);
-  const [isBreathingPaused, setIsBreathingPaused] = useState(false);
   const [isWelcomeMessagePlaying, setIsWelcomeMessagePlaying] = useState(false);
   const [currentMusicIndex, setCurrentMusicIndex] = useState(0);
 
-
-  // Referencias para intervalos y timeouts
+  // Refs
   const messageIntervalRef = useRef(null);
   const mainIntervalRef = useRef(null);
   const phaseTimeoutRef = useRef(null);
-  const breathingAnim = new Animated.Value(1);
+  const breathingAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const welcomeAnim = useRef(new Animated.Value(0)).current;
   const floatAnim = useRef(new Animated.Value(0)).current;
   const isMounted = useRef(true);
 
+  // --- Effects ---
 
-  // Efecto para resetear el estado cuando la pantalla vuelve a estar en foco
+  // Reset on Focus
   useFocusEffect(
     useCallback(() => {
-      if (isWelcomeMessagePlaying) {
-        return;
-      }
-      // Restablecer el estado a los valores iniciales
+      if (isWelcomeMessagePlaying) return;
+
       setSessionPhase(0);
       setBreathingActive(false);
       setShowWelcome(true);
@@ -63,80 +64,70 @@ const SOSScreen = ({ navigation }) => {
       setIsPaused(false);
       preparationPhaseHasRun.current = false;
 
-      // It also clears any running timers.
       if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
       if (mainIntervalRef.current) clearInterval(mainIntervalRef.current);
       if (phaseTimeoutRef.current) clearTimeout(phaseTimeoutRef.current);
 
-      // The function returned here is the cleanup function.
-      // It runs when the screen loses focus.
       return () => {
         if (sound) {
-          sound.stopAsync().catch(() => {});
-          sound.unloadAsync().catch(() => {});
+          sound.stopAsync().catch(() => { });
+          sound.unloadAsync().catch(() => { });
         }
         if (backgroundMusic) {
-          backgroundMusic.stopAsync().catch(() => {});
-          backgroundMusic.unloadAsync().catch(() => {});
+          backgroundMusic.stopAsync().catch(() => { });
+          backgroundMusic.unloadAsync().catch(() => { });
         }
       };
     }, [isWelcomeMessagePlaying])
   );
 
-  // Removed panic mode useEffect - now using direct mindfulness approach
-
-  // Cleanup adicional cuando el componente se desmonta
+  // Cleanup on Unmount
   useEffect(() => {
     isMounted.current = true;
     return () => {
       isMounted.current = false;
-      // Cleanup final cuando el componente se desmonta completamente
       if (sound) {
-        sound.stopAsync().catch(() => {});
-        sound.unloadAsync().catch(() => {});
+        sound.stopAsync().catch(() => { });
+        sound.unloadAsync().catch(() => { });
       }
     };
   }, []);
 
-  // Efecto para música aleatoria
+  // Random Music
   useEffect(() => {
     if (breathingActive && !showWelcome) {
-      // Seleccionar una canción aleatoria al iniciar la sesión de respiración
-      const randomIndex = getRandomMusicIndex(-1); // -1 para que pueda seleccionar cualquier canción
+      const randomIndex = getRandomMusicIndex(-1);
       setCurrentMusicIndex(randomIndex);
     }
   }, [breathingActive, showWelcome]);
 
-  // Empathetic welcome animation
+  // Welcome Sequence & Grounding Vibration
   useEffect(() => {
     const playWelcomeSequence = async () => {
-      // Fade in welcome message
+      // Grounding Vibration (Heartbeat pattern)
+      Vibration.vibrate([0, 400, 100, 400]);
+
       Animated.timing(welcomeAnim, {
         toValue: 1,
         duration: 1000,
         useNativeDriver: true,
       }).start();
 
-      // Floating animation
       Animated.loop(
         Animated.sequence([
           Animated.timing(floatAnim, {
             toValue: 1,
-            duration: 1500,
+            duration: 2000,
             useNativeDriver: true,
           }),
           Animated.timing(floatAnim, {
             toValue: 0,
-            duration: 1500,
+            duration: 2000,
             useNativeDriver: true,
           }),
         ])
       ).start();
 
-      // Cargar y reproducir música de fondo
-      // loadAndPlaySound('softPiano', true, setBackgroundMusic);
-
-      // Reproducir el primer mensaje de bienvenida
       const welcomeMessage = mindfulnessMessages.welcome[0];
       if (welcomeMessage?.sound) {
         setIsWelcomeMessagePlaying(true);
@@ -146,16 +137,13 @@ const SOSScreen = ({ navigation }) => {
         }
       }
 
-      // Iniciar la sesión de mindfulness después de una pausa
       const sessionTimeout = setTimeout(() => {
         if (isMounted.current) {
           startMindfulnessSession();
         }
-      }, 7000); // Duración del mensaje de bienvenida
+      }, 7000);
 
-      return () => {
-        clearTimeout(sessionTimeout);
-      };
+      return () => clearTimeout(sessionTimeout);
     };
 
     if (showWelcome) {
@@ -163,76 +151,51 @@ const SOSScreen = ({ navigation }) => {
     }
   }, [showWelcome]);
 
+  // Load Breathing Music
   useEffect(() => {
     const loadBreathingMusic = async () => {
       if (breathingActive && !showWelcome && !backgroundMusic) {
-        // Detener música actual
         try {
-          await backgroundMusic.stopAsync();
-          await backgroundMusic.unloadAsync();
-        } catch (error) {
-          console.log('Error stopping current music:', error);
-        }
-        
-        // Cargar música aleatoria para ejercicios de respiración
+          await backgroundMusic?.stopAsync();
+          await backgroundMusic?.unloadAsync();
+        } catch (error) { }
+
         try {
           const { sound: bgMusic } = await Audio.Sound.createAsync(
             backgroundMusicList[currentMusicIndex],
-            {
-              shouldPlay: true,
-              isLooping: false, // No loop para permitir cambio automático
-              volume: 0.05, // Volumen para ejercicios de respiración
-            }
+            { shouldPlay: true, isLooping: false, volume: 0.1 }
           );
-          
-          // Configurar callback para cuando termine la canción
+
           bgMusic.setOnPlaybackStatusUpdate((status) => {
             if (status.didJustFinish && !status.isLooping) {
-              // Seleccionar siguiente canción aleatoria
               const nextIndex = getRandomMusicIndex(currentMusicIndex);
               setCurrentMusicIndex(nextIndex);
             }
           });
-          
+
           setBackgroundMusic(bgMusic);
         } catch (error) {
-          console.log('Error loading breathing exercise music:', error);
+          console.log('Error loading music:', error);
         }
       }
     };
-    
     loadBreathingMusic();
   }, [breathingActive, showWelcome, currentMusicIndex]);
 
-  // Función para obtener un mensaje aleatorio diferente al actual
-  const getRandomMessage = (messagesArray, currentIndex) => {
-    if (messagesArray.length <= 1) return 0;
-    let randomIndex;
-    do {
-      randomIndex = Math.floor(Math.random() * messagesArray.length);
-    } while (randomIndex === currentIndex);
-    return randomIndex;
-  };
-
-  // Efecto para la fase de preparación
+  // Preparation Phase Logic
   useEffect(() => {
     let secondMessageTimer;
     let phaseChangeTimer;
 
     if (breathingActive && !showWelcome && !isPaused && sessionPhase === 0 && !preparationPhaseHasRun.current) {
       preparationPhaseHasRun.current = true;
-      
-      // El primer mensaje se establece en startMindfulnessSession.
-      // Aquí solo programamos los siguientes eventos de la fase de preparación.
 
-      // 1. Después de 10 segundos, reproducir el segundo mensaje
       secondMessageTimer = setTimeout(() => {
         setCurrentMessage(prev => getRandomMessage(mindfulnessMessages.preparation, prev));
         animateMessageChange();
         setLastPlayedSound(null);
       }, 10000);
 
-      // 2. Después de 20 segundos, cambiar a la fase de respiración
       phaseChangeTimer = setTimeout(() => {
         setSessionPhase(1);
         const randomStartIndex = Math.floor(Math.random() * mindfulnessMessages.breathing.length);
@@ -248,17 +211,12 @@ const SOSScreen = ({ navigation }) => {
     };
   }, [breathingActive, showWelcome, isPaused, sessionPhase]);
 
-  // Efecto para el intervalo de mensajes en otras fases (breathing, reflection)
+  // Message Interval
   useEffect(() => {
     if (breathingActive && !showWelcome && !isPaused && (sessionPhase === 1 || sessionPhase === 2)) {
       messageIntervalRef.current = setInterval(() => {
         setCurrentMessage(prev => {
-          let messagesArray;
-          if (sessionPhase === 1) {
-            messagesArray = mindfulnessMessages.breathing;
-          } else {
-            messagesArray = mindfulnessMessages.reflection;
-          }
+          let messagesArray = sessionPhase === 1 ? mindfulnessMessages.breathing : mindfulnessMessages.reflection;
           const newIndex = getRandomMessage(messagesArray, prev);
           setLastPlayedSound(null);
           animateMessageChange();
@@ -275,115 +233,146 @@ const SOSScreen = ({ navigation }) => {
     };
   }, [breathingActive, showWelcome, isPaused, sessionPhase]);
 
+  // Breathing & Timer Logic
   useEffect(() => {
     if (breathingActive && !showWelcome && !isPaused) {
-      // Iniciar sonido ambiente
-      loadAndPlaySound();
-      
-      // Contador total de tiempo de sesión
       mainIntervalRef.current = setInterval(() => {
         setTotalSessionTime(prev => prev + 1);
       }, 1000);
-      
-      // Fase de preparación (controlada por contador de mensajes)
-      if (sessionPhase === 0) {
-        // El cambio a breathing se controla automáticamente por el contador de mensajes
-      }
-      
-      // Guided breathing phase (2 minutes)
-      else if (sessionPhase === 1) {
+
+      if (sessionPhase === 1) {
         phaseTimeoutRef.current = setInterval(() => {
           setBreathingCount(prev => {
             const newCount = prev + 1;
-            const cycle = newCount % 12; // 4 segundos inhalar, 4 mantener, 4 exhalar
-            
-            if (cycle <= 4) {
-              setBreathingPhase('inhale');
-            } else if (cycle <= 8) {
-              setBreathingPhase('hold');
-            } else {
-              setBreathingPhase('exhale');
-            }
-            
-            // Después de 2 minutos, terminar sesión
+            const cycle = newCount % 12;
+
+            if (cycle <= 4) setBreathingPhase('inhale');
+            else if (cycle <= 8) setBreathingPhase('hold');
+            else setBreathingPhase('exhale');
+
             if (newCount >= 120) {
               finishSession();
               return 0;
             }
-            
             return newCount;
           });
         }, 1000);
-        
-        // Breathing animation
+
         Animated.loop(
           Animated.sequence([
             Animated.timing(breathingAnim, {
-              toValue: 1.3,
+              toValue: 1.4,
               duration: 4000,
+              easing: Easing.inOut(Easing.ease),
               useNativeDriver: true,
             }),
             Animated.timing(breathingAnim, {
-              toValue: 1.3,
+              toValue: 1.4, // Hold
               duration: 4000,
               useNativeDriver: true,
             }),
             Animated.timing(breathingAnim, {
               toValue: 1,
               duration: 4000,
+              easing: Easing.inOut(Easing.ease),
               useNativeDriver: true,
             }),
           ])
         ).start();
       }
-      
-
     }
-    
+
     return () => {
-      if (phaseTimeoutRef.current) {
-        clearInterval(phaseTimeoutRef.current);
-        phaseTimeoutRef.current = null;
-      }
-      if (mainIntervalRef.current) {
-        clearInterval(mainIntervalRef.current);
-        mainIntervalRef.current = null;
-      }
+      if (phaseTimeoutRef.current) clearInterval(phaseTimeoutRef.current);
+      if (mainIntervalRef.current) clearInterval(mainIntervalRef.current);
     };
   }, [breathingActive, sessionPhase, isPaused]);
-  
-  // Cleanup del sonido
-  useEffect(() => {
-    return sound
-      ? () => {
-          sound.unloadAsync();
-        }
-      : undefined;
-  }, [sound]);
 
-  // Función para iniciar directamente la sesión de mindfulness
+  // --- Helper Functions ---
+
+  const getRandomMessage = (messagesArray, currentIndex) => {
+    if (messagesArray.length <= 1) return 0;
+    let randomIndex;
+    do {
+      randomIndex = Math.floor(Math.random() * messagesArray.length);
+    } while (randomIndex === currentIndex);
+    return randomIndex;
+  };
+
   const startMindfulnessSession = async () => {
     setShowWelcome(false);
     setBreathingActive(true);
     setIsPaused(false);
     setSessionPhase(0);
-    // Start with a random preparation message
     const randomPrepIndex = Math.floor(Math.random() * mindfulnessMessages.preparation.length);
     setCurrentMessage(randomPrepIndex);
     setBreathingCount(0);
     setBreathingPhase('preparation');
-    setLastPlayedSound(null); // Reset to allow session sounds from start
-    setPreparationMessageCount(0); // Reset preparation message counter
+    setLastPlayedSound(null);
   };
 
-  // Auto-iniciar la sesión al cargar la pantalla
-  useEffect(() => {
-    // La sesión ahora se inicia después de la secuencia de bienvenida
-    // startMindfulnessSession(); 
-  }, []);
+  const finishSession = async () => {
+    try {
+      setBreathingActive(false);
+      setIsPaused(true);
 
-  // Function to play message sound
+      if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
+      if (mainIntervalRef.current) clearInterval(mainIntervalRef.current);
+      if (phaseTimeoutRef.current) clearInterval(phaseTimeoutRef.current);
+
+      if (sound) {
+        await sound.stopAsync();
+        await sound.unloadAsync();
+        setSound(null);
+      }
+
+      if (backgroundMusic) {
+        await backgroundMusic.stopAsync();
+        await backgroundMusic.unloadAsync();
+        setBackgroundMusic(null);
+      }
+
+      // Quick audio reset
+      await Audio.setIsEnabledAsync(false);
+      await new Promise(resolve => setTimeout(resolve, 50));
+      await Audio.setIsEnabledAsync(true);
+
+    } catch (error) {
+      console.log('Error in finishSession:', error);
+    }
+
+    navigation.navigate('SOSFeedback', {
+      sessionDuration: totalSessionTime,
+      sessionType: 'mindfulness',
+      completedPhases: sessionPhase + 1
+    });
+  };
+
+  const getCurrentMessage = () => {
+    if (showWelcome) {
+      return mindfulnessMessages.welcome[currentMessage % mindfulnessMessages.welcome.length];
+    }
+
+    let messages;
+    switch (sessionPhase) {
+      case 0: messages = mindfulnessMessages.preparation; break;
+      case 1: messages = mindfulnessMessages.breathing; break;
+      default: return 'Breathe naturally';
+    }
+
+    const currentMessageData = messages[currentMessage % messages.length];
+
+    if (currentMessageData?.sound && currentMessageData.sound !== lastPlayedSound) {
+      setLastPlayedSound(currentMessageData.sound);
+      playMessageSound(currentMessageData.sound);
+    }
+
+    return typeof currentMessageData === 'object' ? currentMessageData.message : currentMessageData;
+  };
+
   const playMessageSound = async (soundPath) => {
+    if (Platform.OS === 'web') return;
+
     try {
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
@@ -392,34 +381,19 @@ const SOSScreen = ({ navigation }) => {
         shouldDuckAndroid: true,
         playThroughEarpieceAndroid: false,
       });
-      
-      // Stop previous sound if exists
+
       if (sound) {
-        try {
-          await sound.stopAsync();
-          await sound.unloadAsync();
-        } catch (cleanupError) {
-          console.log('Error cleaning up previous sound:', cleanupError);
-        }
+        await sound.stopAsync();
+        await sound.unloadAsync();
         setSound(null);
-        // Small delay to ensure cleanup is complete
-        await new Promise(resolve => setTimeout(resolve, 100));
       }
 
-      if (Platform.OS === 'web') {
-        console.log('Audio playback disabled for web platform. Path:', soundPath);
-        return;
-      }
-      
-      // For React Native, we need to use require() for local assets
-      // Extract filename from path to use with require
       const filename = soundPath.split('/').pop();
       let audioSource;
-      
-      // Dynamic audio mapping using require context
+
+      // --- Audio Mapping (Preserved) ---
       try {
         if (soundPath.includes('preparation/')) {
-          // Map all preparation audio files
           const audioMap = {
             'After every storm comes peace.mp3': require('../../assets/preparation/After every storm comes peace.mp3'),
             'Allow yourself to simply be.mp3': require('../../assets/preparation/Allow yourself to simply be.mp3'),
@@ -446,7 +420,6 @@ const SOSScreen = ({ navigation }) => {
           };
           audioSource = audioMap[filename];
         } else if (soundPath.includes('breathing/')) {
-          // Map all breathing audio files
           const audioMap = {
             'After every storm comes a rainbow.mp3': require('../../assets/breathing/After every storm comes a rainbow.mp3'),
             'Beauty exists in your vulnerability.mp3': require('../../assets/breathing/Beauty exists in your vulnerability.mp3'),
@@ -552,869 +525,285 @@ const SOSScreen = ({ navigation }) => {
           };
           audioSource = audioMap[filename];
         }
-        
-        if (!audioSource) {
-          console.log('Audio file not found in mapping:', filename);
-          return;
+
+        if (audioSource) {
+          const { sound: newSound } = await Audio.Sound.createAsync(
+            audioSource,
+            { shouldPlay: false, isLooping: false, volume: 0.7 }
+          );
+          await newSound.playAsync();
+          setSound(newSound);
         }
       } catch (error) {
-        console.log('Error mapping audio file:', filename, error);
-        return;
+        console.log('Error playing sound:', error);
       }
-      
-      // Enable audio playback for native platforms
-      const { sound: newSound } = await Audio.Sound.createAsync(
-        audioSource,
-        { 
-          shouldPlay: false, 
-          isLooping: false, 
-          volume: 0.7,
-          rate: 1.0,
-          shouldCorrectPitch: true
-        }
-      );
-      
-      // Play the sound after creation
-      await newSound.playAsync();
-      setSound(newSound);
     } catch (error) {
-      console.log('Error playing sound:', error, 'for path:', soundPath);
-      // Continue without sound if there's an error
+      console.log('Error setting audio mode:', error);
     }
   };
 
-  const loadAndPlaySound = async () => {
-    // This function is now used for background ambient sounds if needed
-    // Individual message sounds are handled by playMessageSound
-  };
-  
-  // Smooth animation for message changes
   const animateMessageChange = () => {
     Animated.sequence([
-      Animated.timing(fadeAnim, {
-        toValue: 0.3,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }),
+      Animated.timing(fadeAnim, { toValue: 0.3, duration: 500, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
     ]).start();
   };
 
-  const startBreathingExercise = async () => {
-    setBreathingActive(true);
-    setBreathingCount(0);
-    setSessionPhase(0);
-    // Start with a random preparation message
-    const randomPrepIndex = Math.floor(Math.random() * mindfulnessMessages.preparation.length);
-    setCurrentMessage(randomPrepIndex);
-    setBreathingPhase('preparation');
-    setLastPlayedSound(null); // Reset to allow exercise sounds from start
-    
-    // La música se iniciará cuando showWelcome cambie a false
-  };
-
-  const stopBreathingExercise = async () => {
-    setBreathingActive(false);
-    setBreathingCount(0);
-    setSessionPhase(0);
-    // Reset to a random preparation message
-    const randomPrepIndex = Math.floor(Math.random() * mindfulnessMessages.preparation.length);
-    setCurrentMessage(randomPrepIndex);
-    setBreathingPhase('preparation');
-    
-    // Detener sonido
-    if (sound) {
-      await sound.stopAsync();
-      await sound.unloadAsync();
-      setSound(null);
-    }
-    
-    // Detener música de fondo
-    if (backgroundMusic) {
-      await backgroundMusic.stopAsync();
-      await backgroundMusic.unloadAsync();
-      setBackgroundMusic(null);
-    }
-  };
-
-  // Nueva función para finalizar la sesión y navegar al feedback
-  const finishSession = async () => {
-    try {
-      // First, stop all active states and intervals
-      setBreathingActive(false);
-      setIsPaused(true);
-      
-      // Clear all possible intervals and timers explicitly
-      if (messageIntervalRef.current) {
-        clearInterval(messageIntervalRef.current);
-        messageIntervalRef.current = null;
-      }
-      if (mainIntervalRef.current) {
-        clearInterval(mainIntervalRef.current);
-        mainIntervalRef.current = null;
-      }
-      if (phaseTimeoutRef.current) {
-        clearInterval(phaseTimeoutRef.current);
-        phaseTimeoutRef.current = null;
-      }
-      
-      // Detener y limpiar sonido de manera robusta
-      if (sound) {
-        try {
-          await sound.stopAsync();
-          await sound.unloadAsync();
-        } catch (error) {
-          console.log('Error stopping voice sound:', error);
-        }
-        setSound(null);
-      }
-      
-      // Detener y limpiar música de fondo
-      if (backgroundMusic) {
-        try {
-          await backgroundMusic.stopAsync();
-          await backgroundMusic.unloadAsync();
-        } catch (error) {
-          console.log('Error stopping background music:', error);
-        }
-        setBackgroundMusic(null);
-      }
-      
-      // Configurar audio para limpieza rápida
-      try {
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: false,
-          staysActiveInBackground: false,
-          playsInSilentModeIOS: false,
-          shouldDuckAndroid: false,
-          playThroughEarpieceAndroid: false,
-        });
-        
-        // Limpieza rápida del audio
-        await Audio.setIsEnabledAsync(false);
-        await new Promise(resolve => setTimeout(resolve, 50));
-        await Audio.setIsEnabledAsync(true);
-        
-      } catch (error) {
-        console.log('Error in audio cleanup during finish:', error);
-      }
-      
-    } catch (error) {
-      console.log('Error in finishSession:', error);
-    }
-    
-    // Navegar a la pantalla de feedback con datos de la sesión
-    navigation.navigate('SOSFeedback', {
-      sessionDuration: totalSessionTime,
-      sessionType: 'mindfulness',
-      completedPhases: sessionPhase + 1
-    });
-  };
-
-  const callEmergency = () => {
+  const handleCallHelp = () => {
     Alert.alert(
-      'Llamar Ayuda',
-      '¿A quién te gustaría contactar?',
+      'Emergency Help',
+      'Who would you like to call?',
       [
-        {
-          text: 'Línea de Crisis (988)',
-          onPress: () => Linking.openURL('tel:988'),
-        },
-        {
-          text: 'Emergencias (911)',
-          onPress: () => Linking.openURL('tel:911'),
-        },
-        {
-          text: 'Contacto de Confianza',
-          onPress: () => console.log('Llamar contacto de confianza'),
-        },
-        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Crisis Line (988)', onPress: () => Linking.openURL('tel:988') },
+        { text: 'Emergency (911)', onPress: () => Linking.openURL('tel:911') },
+        { text: 'Cancel', style: 'cancel' },
       ]
     );
   };
-
-  // Removed resetPanicMode function - no longer needed
-
-  const getBreathingInstruction = () => {
-    switch (breathingPhase) {
-      case 'preparation':
-        return 'Preparing for calm';
-      case 'inhale':
-        return 'Breathe in deeply';
-      case 'hold':
-        return 'Hold your breath';
-      case 'exhale':
-        return 'Exhale slowly';
-
-      default:
-        return 'Breathe naturally';
-    }
-  };
-  
-  const getCurrentMessage = () => {
-    if (showWelcome) {
-      return mindfulnessMessages.welcome[currentMessage % mindfulnessMessages.welcome.length];
-    }
-    
-    let messages;
-    switch (sessionPhase) {
-      case 0:
-        messages = mindfulnessMessages.preparation;
-        break;
-      case 1:
-        messages = mindfulnessMessages.breathing;
-        break;
-
-      default:
-        return 'Breathe naturally';
-    }
-    
-    const currentMessageData = messages[currentMessage % messages.length];
-    
-    // If message has sound and it's different from the last played sound, play it
-    if (currentMessageData?.sound && currentMessageData.sound !== lastPlayedSound) {
-      setLastPlayedSound(currentMessageData.sound);
-      playMessageSound(currentMessageData.sound);
-    }
-    
-    // Return message text (for breathing objects) or string (for other phases)
-    return typeof currentMessageData === 'object' ? currentMessageData.message : currentMessageData;
-  };
-  
-  const getSessionTitle = () => {
-    if (showWelcome) {
-      return '';
-    }
-    
-    return '';
-  };
-  
-  const getCircleColor = () => {
-    switch (sessionPhase) {
-      case 0:
-        return '#9C27B0'; // Púrpura para preparación
-      case 1:
-        return '#4CAF50'; // Green for breathing
-
-      default:
-        return '#4CAF50';
-    }
-  };
-
-  const handle54321Technique = () => {
-    Alert.alert(
-      'Técnica 5-4-3-2-1',
-      'Identifica:\n• 5 cosas que puedes VER\n• 4 cosas que puedes TOCAR\n• 3 cosas que puedes ESCUCHAR\n• 2 cosas que puedes OLER\n• 1 cosa que puedes SABOREAR\n\nEsto te ayudará a conectar con el presente.',
-      [{ text: 'Entendido' }]
-    );
-  };
-
-  const handleRelaxingMusic = () => {
-    Alert.alert(
-      'Música Relajante',
-      'Playing calming sounds to help you relax...',
-      [{ text: 'Comenzar' }]
-    );
-  };
-
-  const handleAffirmations = () => {
-    const affirmations = [
-      'Estoy seguro/a y protegido/a',
-      'Esto también pasará',
-      'Soy más fuerte de lo que creo',
-      'Puedo manejar esta situación',
-      'Estoy rodeado/a de amor y apoyo'
-    ];
-    const randomAffirmation = affirmations[Math.floor(Math.random() * affirmations.length)];
-    Alert.alert('Afirmación Positiva', `"${randomAffirmation}"\n\nRepite esto en voz alta o mentalmente.`);
-  };
-
-  const handleContactTherapist = () => {
-    Alert.alert(
-      'Contactar Profesional',
-      '¿Cómo te gustaría contactar ayuda profesional?',
-      [
-        { text: 'Llamar Línea de Crisis', onPress: () => Linking.openURL('tel:988') },
-        { text: 'Chat de Apoyo', onPress: () => Alert.alert('Chat', 'Conectando con chat de apoyo...') },
-        { text: 'Cancelar', style: 'cancel' }
-      ]
-    );
-  };
-
-  const quickTools = [
-    {
-      id: 1,
-      title: 'Técnica 5-4-3-2-1',
-      description: 'Grounding para ansiedad',
-      icon: 'eye-outline',
-      color: '#2196F3',
-      action: handle54321Technique,
-    },
-    {
-      id: 2,
-      title: 'Música Relajante',
-      description: 'Calming sounds',
-      icon: 'musical-notes-outline',
-      color: '#9C27B0',
-      action: handleRelaxingMusic,
-    },
-    {
-      id: 3,
-      title: 'Afirmaciones',
-      description: 'Pensamientos positivos',
-      icon: 'heart-outline',
-      color: '#E91E63',
-      action: handleAffirmations,
-    },
-    {
-      id: 4,
-      title: 'Contactar Terapeuta',
-      description: 'Hablar con profesional',
-      icon: 'person-outline',
-      color: '#FF9800',
-      action: handleContactTherapist,
-    },
-  ];
 
   return (
-    <SafeAreaView style={styles.container}>
-      {showWelcome ? (
-        /* Empathetic Welcome Screen */
-        <Animated.View style={[styles.welcomeContainer, { opacity: welcomeAnim }]}>
-          <Animated.View style={[
-            styles.welcomeContent,
-            {
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+      <LinearGradient
+        colors={['#F3E5F5', '#E3F2FD', '#FCE4EC']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.backgroundGradient}
+      />
+
+      <SafeAreaView style={styles.safeArea}>
+        {showWelcome ? (
+          <Animated.View style={[styles.welcomeContainer, { opacity: welcomeAnim }]}>
+            <Animated.View style={{
               transform: [{
                 translateY: floatAnim.interpolate({
                   inputRange: [0, 1],
-                  outputRange: [0, -10]
+                  outputRange: [0, -15]
                 })
               }]
-            }
-          ]}>
-            <View style={styles.welcomeIcon}>
-              <Ionicons name="heart" size={80} color="#FF6B9D" />
-            </View>
-            
-            <Text style={styles.welcomeTitle}>
-              {getCurrentMessage()}
-            </Text>
-            
-            <View style={styles.breathingIndicator}>
-              
-              <Text style={styles.breathingText}>Breathe with me...</Text>
-            </View>
+            }}>
+              <View style={styles.welcomeIconContainer}>
+                <Ionicons name="heart" size={80} color="#EC407A" />
+              </View>
+              <Text style={styles.welcomeText}>
+                {getCurrentMessage()}
+              </Text>
+              <Text style={styles.subWelcomeText}>Breathe with me...</Text>
+            </Animated.View>
           </Animated.View>
-        </Animated.View>
-      ) : (
-        /* Sesión de Mindfulness - Nuevo Diseño */
-        <LinearGradient
-          colors={['#4A90E2', '#7BB3F0', '#A8D0F8']}
-          style={styles.mindfulnessContainer}
-        >
-          {breathingActive && (
-        /* Mindfulness Session Screen */
-        <View style={styles.breathingContainer}>
-          {/* Header con botón cerrar */}
-          <View style={styles.headerContainer}>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => {
-                if (breathingActive) {
-                  finishSession();
-                } else {
-                  navigation.goBack();
-                }
-              }}
-            >
-              <Ionicons name="close" size={24} color="rgba(255,255,255,0.8)" />
-            </TouchableOpacity>
-            
-            <Text style={styles.headerTitle}>Calm Session</Text>
-            
-            <TouchableOpacity style={styles.musicButton}>
-              <Ionicons name="musical-notes" size={24} color="rgba(255,255,255,0.8)" />
-            </TouchableOpacity>
-          </View>
+        ) : (
+          <View style={styles.sessionContainer}>
+            {/* Header */}
+            <View style={styles.header}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
+                <Ionicons name="close" size={24} color="#546E7A" />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Calm Session</Text>
+              <View style={{ width: 40 }} />
+            </View>
 
-          {/* Barra de progreso */}
-          <View style={styles.progressBarContainer}>
-            <View style={styles.progressBarTrack}>
-              <View style={[
-                styles.progressBarFill,
-                { width: `${Math.min((totalSessionTime / 160) * 100, 100)}%` }
-              ]} />
+            {/* Main Content */}
+            <View style={styles.content}>
+              <Animated.View style={[
+                styles.breathingCircle,
+                {
+                  transform: [{ scale: breathingAnim }]
+                }
+              ]}>
+                <LinearGradient
+                  colors={['#E1BEE7', '#F8BBD9']}
+                  style={styles.circleGradient}
+                >
+                  <View style={styles.innerCircle} />
+                </LinearGradient>
+              </Animated.View>
+
+              <Animated.Text style={[styles.messageText, { opacity: fadeAnim }]}>
+                {getCurrentMessage()}
+              </Animated.Text>
+
+              <Text style={styles.instructionText}>
+                {breathingPhase === 'inhale' ? 'Inhale...' :
+                  breathingPhase === 'hold' ? 'Hold...' :
+                    breathingPhase === 'exhale' ? 'Exhale...' : 'Relax...'}
+              </Text>
+            </View>
+
+            {/* Controls */}
+            <View style={styles.controls}>
+              <TouchableOpacity style={styles.finishButton} onPress={finishSession}>
+                <Text style={styles.finishButtonText}>I'm feeling better</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.helpButton} onPress={handleCallHelp}>
+                <Text style={styles.helpButtonText}>Call Help</Text>
+              </TouchableOpacity>
             </View>
           </View>
-
-          {/* Contenido central */}
-          <View style={styles.centerContent}>
-            <Text style={styles.verseText}>
-               {getCurrentMessage()}
-            </Text>
-            
-            
-            
-            <Text style={styles.instructionText}>
-              Breathe deeply and find your inner calm
-             
-            </Text>
-          </View>
-
-          {/* Indicador de reproducción */}
-          <View style={styles.playIndicator}>
-            <Ionicons name="play" size={32} color="rgba(255,255,255,0.9)" />
-          </View>
-        </View>
-           )}
-         </LinearGradient>
         )}
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 };
 
+// --- Styles ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
   },
-  // Styles for empathetic welcome screen
+  backgroundGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+  },
+  safeArea: {
+    flex: 1,
+  },
+
+  // Welcome Screen
   welcomeContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFF5F8',
-    padding: 20,
+    padding: 30,
   },
-  welcomeContent: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  welcomeIcon: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  welcomeIconContainer: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255,255,255,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 30,
-    shadowColor: '#FF6B9D',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
+    marginBottom: 40,
+    alignSelf: 'center',
+    shadowColor: "#EC407A",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
     shadowRadius: 20,
     elevation: 10,
   },
-  welcomeTitle: {
-    fontSize: 22,
-    fontWeight: '400',
-    color: '#4A4A4A',
+  welcomeText: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#455A64',
     textAlign: 'center',
-    marginBottom: 40,
-    lineHeight: 28,
-    fontFamily: 'System',
-    paddingHorizontal: 20,
+    marginBottom: 16,
+    lineHeight: 34,
   },
-  breathingIndicator: {
-    alignItems: 'center',
-  },
-  breathingDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#FF6B9D',
-    marginBottom: 10,
-    shadowColor: '#FF6B9D',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  breathingText: {
-    fontSize: 16,
-    color: '#666',
+  subWelcomeText: {
+    fontSize: 18,
+    color: '#78909C',
+    textAlign: 'center',
     fontStyle: 'italic',
-    fontWeight: '300',
   },
-  // Styles for mindfulness session
-  mindfulnessContainer: {
+
+  // Session Screen
+  sessionContainer: {
     flex: 1,
-  },
-  // Removed mindfulHeader - no longer needed
-  backButton: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    zIndex: 10,
-    padding: 12,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    justifyContent: 'space-between',
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 20,
+    alignItems: 'center',
+    paddingHorizontal: 20,
     paddingTop: 10,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  panicText: {
-    color: 'white',
-  },
-  resetButton: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  panicSection: {
-    alignItems: 'center',
-    padding: 20,
-    marginBottom: 30,
-  },
-  panicTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  panicSubtitle: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 30,
-    lineHeight: 22,
-  },
-  panicButton: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    overflow: 'hidden',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-  },
-  panicButtonGradient: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  panicButtonText: {
-    color: 'white',
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 10,
-  },
-  toolsSection: {
-    padding: 20,
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 15,
-  },
-  toolsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  toolCard: {
-    width: '48%',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 15,
-    alignItems: 'center',
-    marginBottom: 15,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  panicToolCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  toolIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  toolTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: 5,
-  },
-  toolDescription: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
-  },
-  contactsSection: {
-    padding: 20,
-  },
-  contactCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 10,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  panicContactCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  contactText: {
-    flex: 1,
-    marginLeft: 15,
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
-  },
-  // Breathing Exercise Styles
-  breathingContainer: {
-    flex: 1,
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 50,
-    paddingHorizontal: 20,
-  },
-  headerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-    paddingHorizontal: 10,
-  },
-  closeButton: {
-    padding: 8,
-  },
-  headerTitle: {
     fontSize: 18,
-    fontWeight: '500',
-    color: 'rgba(255,255,255,0.9)',
-    textAlign: 'center',
+    fontWeight: '600',
+    color: '#546E7A',
   },
-  musicButton: {
+  iconButton: {
     padding: 8,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    borderRadius: 20,
   },
-  progressBarContainer: {
-    width: '100%',
-    paddingHorizontal: 20,
-    marginTop: 20,
-  },
-  progressBarTrack: {
-    width: '100%',
-    height: 2,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 1,
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    borderRadius: 1,
-  },
-  centerContent: {
+
+  content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 30,
   },
-  verseText: {
-    fontSize: 24,
-    fontWeight: '300',
-    color: 'rgba(255,255,255,0.95)',
-    textAlign: 'center',
-    lineHeight: 32,
-    marginBottom: 60,
-    fontStyle: 'italic',
+  breathingCircle: {
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    marginBottom: 50,
+    shadowColor: "#AB47BC",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 30,
+    elevation: 15,
   },
-  verseReference: {
-    fontSize: 16,
-    fontWeight: '400',
-    color: 'rgba(255,255,255,0.7)',
+  circleGradient: {
+    flex: 1,
+    borderRadius: 130,
+    padding: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  innerCircle: {
+    width: 256,
+    height: 256,
+    borderRadius: 128,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.5)',
+  },
+  messageText: {
+    fontSize: 22,
+    fontWeight: '500',
+    color: '#37474F',
     textAlign: 'center',
-    marginBottom: 40,
+    marginBottom: 20,
+    lineHeight: 32,
   },
   instructionText: {
-    fontSize: 16,
-    fontWeight: '300',
-    color: 'rgba(255,255,255,0.8)',
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  playIndicator: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
-  // Removed stopBreathingButton - using backButton instead
-  progressContainer: {
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 30,
-    position: 'absolute',
-    top: 60,
-  },
-  progressBar: {
-    width: '80%',
-    height: 4,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 2,
-    marginBottom: 8,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#4CAF50',
-    borderRadius: 2,
-  },
-  progressText: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
-  },
-  breathingTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  messageContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.98)',
-    padding: 30,
-    margin: 20,
-    marginTop: 0,
-    borderRadius: 25,
-    shadowColor: '#E8A87C',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-    minHeight: 130,
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(232, 168, 124, 0.2)',
-    width: '90%',
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  mindfulnessMessage: {
-    fontSize: 20,
-    color: '#4A4A4A',
-    textAlign: 'center',
-    lineHeight: 30,
-    fontWeight: '300',
-    fontFamily: 'System',
-    letterSpacing: 0.5,
-    fontStyle: 'italic',
-  },
-  breathingCircle: {
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: '#81C784',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 30,
-    elevation: 10,
-    shadowColor: '#66BB6A',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    borderWidth: 3,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  breathingInstruction: {
-    color: 'white',
-    fontSize: 20,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  sessionInfo: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  breathingCounter: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-  },
-  sessionCounter: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    fontStyle: 'italic',
-  },
-  soundIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-    backgroundColor: 'rgba(76, 175, 80, 0.1)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
-  },
-  soundText: {
-    fontSize: 12,
-    color: '#666',
-    marginLeft: 6,
-  },
-  finishBreathingButton: {
-    backgroundColor: '#81C784',
-    paddingHorizontal: 50,
-    paddingVertical: 18,
-    borderRadius: 30,
-    elevation: 10,
-    shadowColor: '#66BB6A',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  finishBreathingText: {
-    color: 'white',
     fontSize: 18,
+    color: '#78909C',
     fontWeight: '400',
     letterSpacing: 1,
   },
+
+  // Controls
+  controls: {
+    padding: 30,
+    alignItems: 'center',
+  },
+  finishButton: {
+    backgroundColor: 'white',
+    paddingVertical: 16,
+    paddingHorizontal: 40,
+    borderRadius: 30,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  finishButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#5C6BC0',
+  },
+  helpButton: {
+    paddingVertical: 12,
+  },
+  helpButtonText: {
+    fontSize: 16,
+    color: '#EF5350',
+    fontWeight: '500',
+  },
 });
 
-// Lista de canciones para música de fondo
+// Background Music List
 const backgroundMusicList = [
   require('../../assets/songs/Dreaming in Slow Motion.mp3'),
   require('../../assets/songs/Dreaming in Slow Motion 2.mp3'),
